@@ -1,7 +1,15 @@
-  --Import
-
+function Init()
+  
   dofile(reaper.GetResourcePath().."/UserPlugins/ultraschall_api.lua")
   --ultraschall.ApiTest()
+
+  local fileOpsPath = reaper.GetResourcePath().."\\UserPlugins\\fileops.dll"
+
+  if not reaper.file_exists(fileOpsPath) then
+  reaper.MB("Please copy fileops.dll to UserPlugins folder", "Warning", 0) return end
+
+  copyFile = package.loadlib(fileOpsPath, "copyFile")
+  assert(type(copyFile) == "function", "\nError: failed to load function from dll")
 
   -- local libPath = reaper.GetExtState("Scythe v3", "libPath")
   -- if not libPath or libPath == "" then
@@ -11,12 +19,23 @@
 
   -- loadfile(libPath .. "scythe.lua")()
 
+  -- OS BASED SEPARATOR
+  if reaper.GetOS() == "Win32" or reaper.GetOS() == "Win64" then
+    Separator = "\\"
+  else
+    Separator = "/"
+  end
+
+end
 
 function Main()
 
-  ultraschall.WinterlySnowflakes(true,1.3,2000)
+  Init()
 
-  RenderDir = "W:\\Samples\\Procedural\\Generated"
+  --ultraschall.WinterlySnowflakes(true,1.3,2000)
+
+  RenderDirMain = "W:\\Samples\\Procedural\\Generated"
+  RenderDirSub = "W:\\Samples\\Procedural\\SubGenerations"
 
   KickDir = "W:\\Samples\\Procedural\\Banks\\Kicks"
   SnareDir = "W:\\Samples\\Procedural\\Banks\\Snares"
@@ -37,36 +56,45 @@ function Main()
   ReverbSendTrack = reaper.GetTrack(0,4)
   SynthbassTrack = reaper.GetTrack(0,5)
 
-  PerformGeneration(4, true, true)
+  StartGenerating(1, true, true)
 
   ReaperUpdateView()
 
 end
 
-
-
-function PerformGeneration(generationCount,renderToFile,saveProject)
+function StartGenerating(generationCount,saveProject,renderToFile)
+  reaper.PreventUIRefresh(111)
   reaper.Undo_BeginBlock()
 
   for i=0,generationCount-1,1
   do
+
     ReaperClearProjectItems()
+
+    CurrCompName = "Gen_"..os.date("%Y_%m_%d_%H_%M_%S")
+
     CreateComposition()
 
-    local compName = "Gen_"..os.date("%Y_%m_%d_%H_%M_%S")
-    if(renderToFile) then RenderProjectToPath(RenderDir.."\\"..compName..".wav") end
-    if(saveProject) 
+    if(saveProject)
     then
+
       reaper.Main_SaveProject(0,false)
-      local _, projFileName = reaper.EnumProjects(-1,'')
-      local newProjFileName = ProjectFilesDir.."\\"..compName..".rpp"
-      
-      --os.execute("copy "..projFileName.." "..newProjFileName)
+
+      local _, projFile = reaper.EnumProjects(-1,'')
+
+      local projFileCopy = ProjectFilesDir..Separator..CurrCompName..".rpp"
+
+      local ok, err copyFile(projFile,projFileCopy)
+      if ok==false then reaper.ShowConsoleMsg("Copying failed: \n"..projFileCopy.."\n") end
+
     end
+
+    if(renderToFile) then RenderProjectToPath(RenderDirMain..Separator..CurrCompName..".wav") end
 
   end
 
   reaper.Undo_EndBlock("Generate", 1)
+  reaper.PreventUIRefresh(-111)
 end
 
 
@@ -74,23 +102,23 @@ end
 function CreateComposition()
 
   --Samples
-  local kickFile = KickDir.."\\"..GetRandomArrayValue(GetFilesFromDirectory(KickDir))
-  local snareFile = SnareDir.."\\"..GetRandomArrayValue(GetFilesFromDirectory(SnareDir))
+  local kickFile = KickDir.."\\"..GetRandomArrayValue(GetFilesInDirectory(KickDir))
+  local snareFile = SnareDir.."\\"..GetRandomArrayValue(GetFilesInDirectory(SnareDir))
 
-  local ornamentSourceFiles = OrnamentSourceDir.."\\"..GetRandomArrayValue(GetFilesFromDirectory(SnareDir))
+  local ornamentSourceFiles = OrnamentSourceDir.."\\"..GetRandomArrayValue(GetFilesInDirectory(SnareDir))
   local ornamentSourceCount = 5
   for i=0, ornamentSourceCount,1
   do
-    ornamentSourceFiles = OrnamentSourceDir.."\\"..GetRandomArrayValue(GetFilesFromDirectory(SnareDir))
+    ornamentSourceFiles = OrnamentSourceDir.."\\"..GetRandomArrayValue(GetFilesInDirectory(SnareDir))
   end
 
   local ornamentFile = CreateOrnamentFile(ornamentSourceFiles)
 
-  GenerationCurrentPos = 0
+  CurrSegmentPos = 0
 
   RandomizeBPM(90,120)
 
-  CreateSegment(8, 4, 8, kickFile, snareFile, ornamentFile)
+  CreateSegment(8, 2, 16, kickFile, snareFile, ornamentFile)
 
 end
 
@@ -99,7 +127,7 @@ end
 function CreateSegment(length, division, noteDensity, kickFile, snareFile, ornamentFile)
 
   local timeLength = reaper.TimeMap2_beatsToTime(0, length)
-  local offset = GenerationCurrentPos
+  local offset = CurrSegmentPos
 
   local segmentRandomNoteValues = GenerateRandomValuesArray(noteDensity)
 
@@ -120,14 +148,13 @@ function CreateSegment(length, division, noteDensity, kickFile, snareFile, ornam
     end
   end
 
-  GenerationCurrentPos = GenerationCurrentPos + timeLength
+  CurrSegmentPos = CurrSegmentPos + timeLength
 
 end
 
 
 
 function CreateOrnamentFile(sourceFiles)
-  
 
 end
 
@@ -229,7 +256,7 @@ end
 
 
 
-function GetFilesFromDirectory(directoryName)
+function GetFilesInDirectory(directoryName)
   local files = {}
   local i = 0
 
@@ -240,6 +267,17 @@ function GetFilesFromDirectory(directoryName)
   until not ret
 
   return files
+end
+
+
+
+function GetDirectoryFromFile(str,sep)
+  return select(2,str:match("((.*)"..sep..")"))
+end
+
+
+function GetDirectoryFromFileWithSep(str,sep)
+  return str:match("(.*"..sep..")")
 end
 
 
@@ -287,9 +325,7 @@ function RenderProjectToPath(renderPath)
 end
 
 
-
 --Math helpers
-
 function Round(x)
   return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
 end
