@@ -1,8 +1,7 @@
 {
     "Lua.diagnostics.globals": [
         "reaper",
-        "ultraschall",
-        "copyFile"
+        "ultraschall"
     ],
     "lua.targetVersion": "5.3"
 }
