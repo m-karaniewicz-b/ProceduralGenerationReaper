@@ -2,15 +2,16 @@ function Init()
 	local path = ({reaper.get_action_context()})[2]:match("^.+[\\//]")
 	package.path = path .. "?.lua"
 
+	UMath = require("MathUtils")
+	URea = require("ReaperUtils")
+	UFile = require("FileUtils")
+	ULog = require("LogUtils")
+
 	if reaper.GetOS() == "Win32" or reaper.GetOS() == "Win64" then
 		Separator = "\\"
 	else
 		Separator = "/"
 	end
-
-	require("MathUtils")
-	require("ReaperUtils")
-	require("FileUtils")
 end
 
 function Main()
@@ -38,7 +39,7 @@ function Main()
 
 	StartGenerating(1, true, true)
 
-	ReaperUtils.ReaperUpdateView()
+	URea.ReaperUpdateView()
 end
 
 function StartGenerating(generationCount, saveProject, renderToFile)
@@ -46,7 +47,7 @@ function StartGenerating(generationCount, saveProject, renderToFile)
 	reaper.Undo_BeginBlock()
 
 	for i = 0, generationCount - 1, 1 do
-		ReaperUtils.ReaperClearProjectItems()
+		URea.ReaperClearProjectItems()
 
 		CurrCompName = "Gen_" .. os.date("%Y_%m_%d_%H_%M_%S")
 
@@ -60,14 +61,14 @@ function StartGenerating(generationCount, saveProject, renderToFile)
 			local projFileCopy = GeneratedProjectFilesDir .. Separator .. CurrCompName .. ".rpp"
 
 			local ok, err
-			CopyFile(projFile, projFileCopy)
+			UFile.CopyFileToPath(projFile, projFileCopy)
 			if ok == false then
-				reaper.ShowConsoleMsg("Copying failed: \n" .. projFileCopy .. "\n")
+				ULog.Print("Copying failed: " .. projFileCopy)
 			end
 		end
 
 		if (renderToFile) then
-			ReaperUtils.RenderProjectToPath(MainRenderDir .. Separator .. CurrCompName .. ".wav")
+			URea.RenderProjectToPath(MainRenderDir .. Separator .. CurrCompName .. ".wav")
 		end
 	end
 
@@ -77,22 +78,20 @@ end
 
 function CreateComposition()
 	--Samples
-	local kickFile = KickDir .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(KickDir))
-	local snareFile = SnareDir .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(SnareDir))
+	local kickFile = KickDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(KickDir))
+	local snareFile = SnareDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareDir))
 
-	local ornamentSourceFiles =
-		OrnamentSourceDir .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(SnareDir))
+	local ornamentSourceFiles = OrnamentSourceDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareDir))
 	local ornamentSourceCount = 5
 	for i = 0, ornamentSourceCount, 1 do
-		ornamentSourceFiles =
-			OrnamentSourceDir .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(SnareDir))
+		ornamentSourceFiles = OrnamentSourceDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareDir))
 	end
 
 	local ornamentFile = CreateOrnamentFile(ornamentSourceFiles)
 
 	CurrSegmentPos = 0
 
-	ReaperUtils.RandomizeBPM(90, 120)
+	URea.RandomizeBPM(90, 120)
 
 	CreateSegment(8, 2, 16, kickFile, snareFile, ornamentFile)
 end
@@ -101,28 +100,22 @@ function CreateSegment(length, division, noteDensity, kickFile, snareFile, ornam
 	local timeLength = reaper.TimeMap2_beatsToTime(0, length)
 	local offset = CurrSegmentPos
 
-	local segmentRandomNoteValues = MathUtils.GenerateRandomValuesArray(noteDensity)
+	local segmentRandomNoteValues = UMath.GenerateRandomValuesArray(noteDensity)
 
 	local synthbassMel = CreateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 12, 1, 3, 2)
 	--local synthbassMel = GenerateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 24, 1, 2, 5); --jump at end
 	--local synthbassMel = GenerateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 12, 0, 1, 0); --octave
 
 	for i = 0, length - 1, 1 do
-		ReaperUtils.InsertAudioItemPercussive(kickFile, KickTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.25, 0.225)
-		ReaperUtils.InsertAudioItemPercussive(
-			kickFile,
-			SideKickTrack,
-			reaper.TimeMap2_beatsToTime(0, i) + offset,
-			0.25,
-			0.225
-		)
+		URea.InsertAudioItemPercussive(kickFile, KickTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.25, 0.225)
+		URea.InsertAudioItemPercussive(kickFile, SideKickTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.25, 0.225)
 
 		if i % 2 == 1 then
-			ReaperUtils.InsertAudioItemPercussive(snareFile, SnareTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.4, 0.225)
+			URea.InsertAudioItemPercussive(snareFile, SnareTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.4, 0.225)
 		end
 
 		if i % (length / division) == 0 then
-			ReaperUtils.InsertMIDIItemFromPitchValues(
+			URea.InsertMIDIItemFromPitchValues(
 				synthbassMel,
 				SynthbassTrack,
 				reaper.TimeMap2_beatsToTime(0, i) + offset,
@@ -152,12 +145,12 @@ function CreateBasicMelodyFromWeights(weights, basePitch, semitoneRange, progres
 
 		local remapWeight = (weights[i] * 2) - 1
 
-		local pitchDelta = currProgress * MathUtils.Sign(remapWeight) * math.abs(remapWeight) ^ weightsCurve
+		local pitchDelta = currProgress * UMath.Sign(remapWeight) * math.abs(remapWeight) ^ weightsCurve
 		--reaper.ShowConsoleMsg(pitchDelta.."\n")
 
 		pitchDelta = pitchDelta * semitoneRange
 
-		ret[i] = MathUtils.Round(basePitch + pitchDelta)
+		ret[i] = UMath.Round(basePitch + pitchDelta)
 	end
 
 	return ret

@@ -89,3 +89,5 @@ function ReaperUtils.RandomizeBPM(lower, upper)
 	reaper.SetCurrentBPM(0, bpm, 1)
 	return bpm
 end
+
+return ReaperUtils

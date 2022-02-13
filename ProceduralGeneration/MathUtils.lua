@@ -25,3 +25,5 @@ function MathUtils.GetRandomArrayValue(array)
 	end
 	return array[math.random(0, #array)]
 end
+
+return MathUtils

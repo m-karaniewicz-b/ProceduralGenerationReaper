@@ -9,8 +9,12 @@ if not reaper.file_exists(fileOpsPath) then
 	return
 end
 
-CopyFile = package.loadlib(fileOpsPath, "copyFile")
-assert(type(CopyFile) == "function", "\nError: failed to load function from dll")
+local copyFile = package.loadlib(fileOpsPath, "copyFile")
+assert(type(copyFile) == "function", "\nError: failed to load function from dll")
+
+function FileUtils.CopyFileToPath(fileName, pathToCopy)
+	return copyFile(fileName, pathToCopy)
+end
 
 function FileUtils.GetFilesInDirectory(directoryName)
 	local files = {}
@@ -32,3 +36,5 @@ end
 function FileUtils.GetDirectoryFromFileWithSep(str, sep)
 	return str:match("(.*" .. sep .. ")")
 end
+
+return FileUtils
