@@ -25,6 +25,7 @@ function Main()
 	SnareBankDir = "W:\\Samples\\Procedural\\Banks\\Snares"
 	OrnamentSourceBankDir = "W:\\Samples\\Procedural\\Banks\\Random"
 
+	LogsDir = "W:\\Samples\\Procedural\\Logs"
 	TemplateFileName = "W:\\Samples\\Procedural\\Banks\\TrackTemplates\\Generation2.RTrackTemplate"
 	--Load file template
 	--reaper.Main_openProject(templateFileName)
@@ -36,9 +37,7 @@ function Main()
 	ReverbSendTrack = reaper.GetTrack(0, 4)
 	SynthbassTrack = reaper.GetTrack(0, 5)
 
-	StartGenerating(1, true, true)
-
-	URea.ReaperUpdateView()
+	StartGenerating(1, true, false)
 end
 
 function StartGenerating(generationCount, saveProject, renderToFile)
@@ -72,40 +71,91 @@ function StartGenerating(generationCount, saveProject, renderToFile)
 		end
 	end
 
+	URea.ReaperUpdateView()
+
 	reaper.Undo_EndBlock("Generate", 1)
 	reaper.PreventUIRefresh(-111)
 end
 
 function CreateComposition()
-	local kickFile = KickBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(KickBankDir))
-	local snareFile = SnareBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
+	KickFile = KickBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(KickBankDir))
+	SnareFile = SnareBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
 
-	local ornamentSourceFiles =
-		OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
-	local ornamentSourceCount = 5
-	for i = 0, ornamentSourceCount, 1 do
-		ornamentSourceFiles =
-			OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
-	end
+	-- local ornamentSourceFiles =
+	-- 	OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
+	-- local ornamentSourceCount = 5
 
-	local ornamentFile = CreateOrnamentFile(ornamentSourceFiles)
+	-- for i = 0, ornamentSourceCount, 1 do
+	-- 	ornamentSourceFiles =
+	-- 		OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
+	-- end
+
+	-- OrnamentFile = CreateOrnamentFile(ornamentSourceFiles)
+
+	local synthbassInstrumentIndex = reaper.TrackFX_GetInstrument(SynthbassTrack)
+	local synthbassInstrumentFXParameterNames =
+		ReaperUtils.GetTrackFXParameterNames(SynthbassTrack, synthbassInstrumentIndex)
+
+	Macro1Env =
+		reaper.GetFXEnvelope(
+		SynthbassTrack,
+		synthbassInstrumentIndex,
+		UMath.GetFirstIndexMatchingString(synthbassInstrumentFXParameterNames, "Macro 1"),
+		true
+	)
+	Macro2Env =
+		reaper.GetFXEnvelope(
+		SynthbassTrack,
+		synthbassInstrumentIndex,
+		UMath.GetFirstIndexMatchingString(synthbassInstrumentFXParameterNames, "Macro 2"),
+		true
+	)
+	Macro3Env =
+		reaper.GetFXEnvelope(
+		SynthbassTrack,
+		synthbassInstrumentIndex,
+		UMath.GetFirstIndexMatchingString(synthbassInstrumentFXParameterNames, "Macro 3"),
+		true
+	)
+	Macro4Env =
+		reaper.GetFXEnvelope(
+		SynthbassTrack,
+		synthbassInstrumentIndex,
+		UMath.GetFirstIndexMatchingString(synthbassInstrumentFXParameterNames, "Macro 4"),
+		true
+	)
+
+	reaper.DeleteEnvelopePointRange(Macro1Env, 0, math.huge)
+	reaper.DeleteEnvelopePointRange(Macro2Env, 0, math.huge)
+	reaper.DeleteEnvelopePointRange(Macro3Env, 0, math.huge)
+	reaper.DeleteEnvelopePointRange(Macro4Env, 0, math.huge)
 
 	CurrSegmentPos = 0
 
 	URea.RandomizeBPM(90, 120)
 
-	CreateSegment(8, 2, 16, kickFile, snareFile, ornamentFile)
+	CreateSegment(8, 2, 16)
+	CreateSegment(8, 2, 16)
+	CreateSegment(8, 2, 16)
+
+	reaper.Envelope_SortPoints(Macro1Env)
+	reaper.Envelope_SortPoints(Macro2Env)
+	reaper.Envelope_SortPoints(Macro3Env)
+	reaper.Envelope_SortPoints(Macro4Env)
 end
 
-function CreateSegment(length, division, noteDensity, kickFile, snareFile, ornamentFile)
+function CreateSegment(length, division, noteDensity)
+	local kickFile = KickFile
+	local snareFile = SnareFile
+	--local ornamentFile = OrnamentFile
 	local timeLength = reaper.TimeMap2_beatsToTime(0, length)
 	local offset = CurrSegmentPos
 
 	local segmentRandomNoteValues = UMath.GenerateRandomValuesArray(noteDensity)
 
 	local synthbassMel = CreateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 12, 1, 3, 2)
-	--local synthbassMel = GenerateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 24, 1, 2, 5); --jump at end
-	--local synthbassMel = GenerateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 12, 0, 1, 0); --octave
+	--local synthbassMel = CreateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 24, 1, 2, 5); --jump at end
+	--local synthbassMel = CreateBasicMelodyFromWeights(segmentRandomNoteValues, 32, 12, 0, 1, 0) --octave
 
 	for i = 0, length - 1, 1 do
 		URea.InsertAudioItemPercussive(kickFile, KickTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.25, 0.225)
@@ -123,6 +173,17 @@ function CreateSegment(length, division, noteDensity, kickFile, snareFile, ornam
 				reaper.TimeMap2_beatsToTime(0, (length / division))
 			)
 		end
+
+		local envelopePointValue = i / length
+		reaper.InsertEnvelopePoint(
+			Macro1Env,
+			reaper.TimeMap2_beatsToTime(0, i) + offset,
+			envelopePointValue,
+			0,
+			1,
+			false,
+			true
+		)
 	end
 
 	CurrSegmentPos = CurrSegmentPos + timeLength

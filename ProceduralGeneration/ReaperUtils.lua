@@ -90,4 +90,26 @@ function ReaperUtils.RandomizeBPM(lower, upper)
 	return bpm
 end
 
+function ReaperUtils.GetTrackFXParameterNames(track, fxIndex)
+	track = track or 0
+	fxIndex = fxIndex or 0
+
+	local paramFound = true
+	local paramNames = {}
+	local currentName
+	local i = 0
+	while paramFound do
+		paramFound, currentName = reaper.TrackFX_GetParamName(track, fxIndex, i)
+
+		if (paramFound == false) then
+			break
+		end
+
+		table.insert(paramNames, currentName)
+		i = i + 1
+	end
+
+	return paramNames
+end
+
 return ReaperUtils

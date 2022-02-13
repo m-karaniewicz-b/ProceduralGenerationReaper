@@ -26,4 +26,13 @@ function MathUtils.GetRandomArrayValue(array)
 	return array[math.random(0, #array)]
 end
 
+function MathUtils.GetFirstIndexMatchingString(stringTable, stringMatch)
+	for index, string in ipairs(stringTable) do
+		if (string == stringMatch) then
+			return index - 1
+		end
+	end
+	return nil
+end
+
 return MathUtils
