@@ -21,12 +21,11 @@ function Main()
 	SubgenerationRenderDir = "W:\\Samples\\Procedural\\SubGenerations"
 	GeneratedProjectFilesDir = "W:\\Samples\\Procedural\\Generated\\ProjectFiles"
 
-	KickDir = "W:\\Samples\\Procedural\\Banks\\Kicks"
-	SnareDir = "W:\\Samples\\Procedural\\Banks\\Snares"
-	OrnamentSourceDir = "W:\\Samples\\Procedural\\Banks\\Random"
+	KickBankDir = "W:\\Samples\\Procedural\\Banks\\Kicks"
+	SnareBankDir = "W:\\Samples\\Procedural\\Banks\\Snares"
+	OrnamentSourceBankDir = "W:\\Samples\\Procedural\\Banks\\Random"
 
 	TemplateFileName = "W:\\Samples\\Procedural\\Banks\\TrackTemplates\\Generation2.RTrackTemplate"
-
 	--Load file template
 	--reaper.Main_openProject(templateFileName)
 
@@ -60,8 +59,9 @@ function StartGenerating(generationCount, saveProject, renderToFile)
 
 			local projFileCopy = GeneratedProjectFilesDir .. Separator .. CurrCompName .. ".rpp"
 
-			local ok, err
+			local ok, _
 			UFile.CopyFileToPath(projFile, projFileCopy)
+
 			if ok == false then
 				ULog.Print("Copying failed: " .. projFileCopy)
 			end
@@ -77,14 +77,15 @@ function StartGenerating(generationCount, saveProject, renderToFile)
 end
 
 function CreateComposition()
-	--Samples
-	local kickFile = KickDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(KickDir))
-	local snareFile = SnareDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareDir))
+	local kickFile = KickBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(KickBankDir))
+	local snareFile = SnareBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
 
-	local ornamentSourceFiles = OrnamentSourceDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareDir))
+	local ornamentSourceFiles =
+		OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
 	local ornamentSourceCount = 5
 	for i = 0, ornamentSourceCount, 1 do
-		ornamentSourceFiles = OrnamentSourceDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareDir))
+		ornamentSourceFiles =
+			OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDir))
 	end
 
 	local ornamentFile = CreateOrnamentFile(ornamentSourceFiles)
@@ -146,7 +147,6 @@ function CreateBasicMelodyFromWeights(weights, basePitch, semitoneRange, progres
 		local remapWeight = (weights[i] * 2) - 1
 
 		local pitchDelta = currProgress * UMath.Sign(remapWeight) * math.abs(remapWeight) ^ weightsCurve
-		--reaper.ShowConsoleMsg(pitchDelta.."\n")
 
 		pitchDelta = pitchDelta * semitoneRange
 
