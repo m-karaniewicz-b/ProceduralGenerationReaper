@@ -11,6 +11,42 @@ function MathUtils.Sign(n)
 	return n > 0 and 1 or n < 0 and -1 or 0
 end
 
+function MathUtils.Remap(value, outMin, outMax, inMin, inMax)
+	inMin = inMin or 0
+	inMax = inMax or 1
+	return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin)
+end
+
+function MathUtils.Sin01(phase, periodLength, steepness)
+	steepness = steepness or 1
+	periodLength = periodLength or 1
+	local sin = MathUtils.Steepness(math.sin(phase * math.pi / periodLength * 2), steepness)
+	return UMath.Remap(sin, 0, 1, -1, 1)
+end
+
+function MathUtils.Triangle01(phase, periodLength, steepness)
+	steepness = steepness or 1
+	periodLength = periodLength or 1
+	local triangle = math.abs((phase + 1) % periodLength - periodLength * 0.5) / periodLength * 2
+	return MathUtils.Steepness(triangle, steepness)
+end
+
+function MathUtils.SawUp01(phase, periodLength, steepness)
+	steepness = steepness or 1
+	periodLength = periodLength or 1
+	return MathUtils.Steepness(phase % periodLength / periodLength, steepness)
+end
+
+function MathUtils.SawDown01(phase, periodLength, steepness)
+	steepness = steepness or 1
+	periodLength = periodLength or 1
+	return 1 - MathUtils.Steepness(phase % periodLength / periodLength, 1 / steepness)
+end
+
+function MathUtils.Steepness(value, steepness)
+	return math.abs(value) ^ (1 / steepness) * MathUtils.Sign(value)
+end
+
 function MathUtils.GenerateRandomValuesArray(size)
 	local ret = {n = 10}
 	for i = 0, size, 1 do

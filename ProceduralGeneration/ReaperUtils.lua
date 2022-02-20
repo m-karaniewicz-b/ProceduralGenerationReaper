@@ -112,4 +112,24 @@ function ReaperUtils.GetTrackFXParameterNames(track, fxIndex)
 	return paramNames
 end
 
+function ReaperUtils.GetParameterEnvelopesFromTrackFXByNames(track, parameterNames, fxIndex)
+	fxIndex = fxIndex or 0
+	local allFXParameterNames = ReaperUtils.GetTrackFXParameterNames(track, fxIndex)
+
+	local envelopes = {}
+
+	--TODO: optimize string search by checking all parameterNames simultaneously
+	local paramIndex
+	for index, value in ipairs(parameterNames) do
+		paramIndex = UMath.GetFirstIndexMatchingString(allFXParameterNames, value)
+		envelopes[index] = reaper.GetFXEnvelope(track, fxIndex, paramIndex, true)
+	end
+
+	return envelopes
+end
+
+function ReaperUtils.InsertEnvelopePointSimple(envelope, beatOffset, timeOffset, value)
+	reaper.InsertEnvelopePoint(envelope, reaper.TimeMap2_beatsToTime(0, beatOffset) + timeOffset, value, 0, 1, false, true)
+end
+
 return ReaperUtils
