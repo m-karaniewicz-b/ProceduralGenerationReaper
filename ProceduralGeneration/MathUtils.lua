@@ -21,7 +21,7 @@ function MathUtils.Sin01(phase, periodLength, steepness)
 	steepness = steepness or 1
 	periodLength = periodLength or 1
 	local sin = MathUtils.Steepness(math.sin(phase * math.pi / periodLength * 2), steepness)
-	return UMath.Remap(sin, 0, 1, -1, 1)
+	return MathUtils.Remap(sin, 0, 1, -1, 1)
 end
 
 function MathUtils.Triangle01(phase, periodLength, steepness)
