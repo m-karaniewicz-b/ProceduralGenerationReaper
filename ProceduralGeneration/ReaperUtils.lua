@@ -132,4 +132,32 @@ function ReaperUtils.InsertEnvelopePointSimple(envelope, beatOffset, timeOffset,
 	reaper.InsertEnvelopePoint(envelope, reaper.TimeMap2_beatsToTime(0, beatOffset) + timeOffset, value, 0, 1, false, true)
 end
 
+function ReaperUtils.BeatsToTime(beats)
+	return reaper.TimeMap2_beatsToTime(0, beats)
+end
+
+function ReaperUtils.BeginProjectModification()
+	reaper.PreventUIRefresh(777)
+	reaper.Undo_BeginBlock()
+end
+
+function ReaperUtils.EndProjectModification(undoName)
+	ReaperUtils.ReaperUpdateView()
+	reaper.PreventUIRefresh(-777)
+	reaper.Undo_EndBlock(undoName, 0)
+end
+
+function ReaperUtils.SaveProjectAndCopyToPath(path)
+	reaper.Main_SaveProject(0, false)
+
+	local _, projFile = reaper.EnumProjects(-1, "")
+
+	local ok, _
+	UFile.CopyFileToPath(projFile, path)
+
+	if ok == false then
+		ULog.Print("Copying failed: " .. path)
+	end
+end
+
 return ReaperUtils
