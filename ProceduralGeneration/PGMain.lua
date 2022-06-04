@@ -44,16 +44,22 @@ function Main()
 	Init()
 	DefineGlobalsPaths()
 	DefineGlobalsTracks()
-	StartGenerating(1, false, false)
+	StartGeneration(1, false, false)
 end
 
-function StartGenerating(generationCount, saveProjectToFile, renderToFile)
+function StartGeneration(compositionCount, saveProjectToFile, renderToFile)
 	URea.BeginProjectModification()
 
-	for i = 0, generationCount - 1, 1 do
-		CreateComposition()
+	local seedSeparatorMultiplier = 100000
+	local generationName = "Gen_" .. GetDateString()
 
-		local currentCompositionName = "Gen_" .. os.date("%Y_%m_%d_%H_%M_%S")
+	for i = 0, compositionCount - 1, 1 do
+		local currentCompositionName = generationName .. GetIterationString(i, compositionCount)
+
+		CurrentCompositionSeed = os.time() * seedSeparatorMultiplier + i
+		AutomationPointsPerBeat = 1
+
+		CreateComposition()
 
 		if (saveProjectToFile) then
 			URea.SaveProjectAndCopyToPath(GeneratedProjectFilesDirPath .. Separator .. currentCompositionName .. ".rpp")
@@ -64,11 +70,24 @@ function StartGenerating(generationCount, saveProjectToFile, renderToFile)
 		end
 	end
 
-	URea.EndProjectModification("Generate")
+	URea.EndProjectModification(generationName)
+end
+
+function GetDateString()
+	return os.date("%Y_%m_%d_%H_%M_%S")
+end
+
+function GetIterationString(currentIteration, iterationCount)
+	iterationCount = iterationCount or 0
+	if iterationCount < 2 then
+		return ""
+	else
+		return "_" .. (currentIteration + 1)
+	end
 end
 
 function CreateComposition()
-	math.randomseed(os.time())
+	math.randomseed(CurrentCompositionSeed)
 
 	URea.ReaperClearProjectItems()
 
@@ -107,7 +126,7 @@ function CreateComposition()
 	URea.RandomizeBPM(90, 110)
 
 	--TODO: class for curves/envelopes
-	--TODO: replace weigths with seed
+	--TODO: replace weights with seed
 
 	local bassNoteBlueprint = NoteSequenceBlueprint(32, 16, 1, 3, 2)
 	local phrase = Phrase(32, kickFile, snareFile, nil, bassNoteBlueprint)
@@ -122,51 +141,6 @@ function CreateComposition()
 		reaper.Envelope_SortPoints(value)
 	end
 end
-
--- function CreatePhrase(lengthInBeats, division, noteDensity)
--- 	local kickFile = KickFile
--- 	local snareFile = SnareFile
--- 	--local ornamentFile = OrnamentFile
--- 	local timeLength = reaper.TimeMap2_beatsToTime(0, lengthInBeats)
--- 	local offset = currentTimePosition
-
--- 	local phraseRandomNoteValues = UMath.GenerateRandomValuesArray(noteDensity)
-
--- 	local synthbassNoteBlueprint = NoteSequenceBlueprint(32, 12, 1, 3, 2)
--- 	local synthbassMelodyNotes = synthbassNoteBlueprint.GetNotes(phraseRandomNoteValues)
--- 	--32, 24, 1, 2, 5 --jump at end
--- 	--32, 12, 0, 1, 0 --octave
-
--- 	for i = 0, lengthInBeats - 1, 1 do
--- 		URea.InsertAudioItemPercussive(kickFile, KickTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.25, 0.225)
--- 		URea.InsertAudioItemPercussive(kickFile, SideKickTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.25, 0.225)
-
--- 		if i % 2 == 1 then
--- 			URea.InsertAudioItemPercussive(snareFile, SnareTrack, reaper.TimeMap2_beatsToTime(0, i) + offset, 0.4, 0.225)
--- 		end
-
--- 		if i % (lengthInBeats / division) == 0 then
--- 			URea.InsertMIDIItemFromPitchValues(
--- 				synthbassMelodyNotes,
--- 				SynthbassTrack,
--- 				reaper.TimeMap2_beatsToTime(0, i) + offset,
--- 				reaper.TimeMap2_beatsToTime(0, (lengthInBeats / division))
--- 			)
--- 		end
--- 	end
-
--- 	--Insert envelope points
--- 	local pointsPerBeat = 8
--- 	local increment = 1 / pointsPerBeat
--- 	for i = 0, lengthInBeats, increment do
--- 		URea.InsertEnvelopePointSimple(SBIntensityEnv, i, offset, UMath.SawUp01(i, lengthInBeats, 0.5))
--- 		URea.InsertEnvelopePointSimple(SBTimbre1Env, i, offset, UMath.Sin01(i, lengthInBeats / 2, 1))
--- 		URea.InsertEnvelopePointSimple(SBTimbre2Env, i, offset, UMath.Triangle01(i, lengthInBeats / 2, 1))
--- 		URea.InsertEnvelopePointSimple(SBWidthEnv, i, offset, 0.3)
--- 	end
-
--- 	currentTimePosition = currentTimePosition + timeLength
--- end
 
 function CreateOrnamentFile(sourceFiles)
 end

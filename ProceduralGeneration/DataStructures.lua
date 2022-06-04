@@ -46,7 +46,7 @@ function Phrase(_lengthInBeats, _kickFile, _snareFile, _ornamentFile, _bassNoteS
 		end
 
 		--Insert envelope points
-		local pointsPerBeat = 8
+		local pointsPerBeat = AutomationPointsPerBeat
 		local increment = 1 / pointsPerBeat
 		for i = 0, self.lengthInBeats, increment do
 			ReaperUtils.InsertEnvelopePointSimple(SBIntensityEnv, i, offset, UMath.SawUp01(i, self.lengthInBeats, 0.5))
@@ -82,6 +82,27 @@ function NoteSequenceBlueprint(basePitch, semitoneRange, progressMult, progressC
 		end
 
 		return notes
+	end
+
+	return self
+end
+
+function Curve(formula, periodLength, steepness)
+	local self = {
+		formula = formula,
+		periodLength = periodLength or 1,
+		steepness = steepness or 1
+	}
+
+	function self.GetValue(phase01)
+		return self.formula(phase01, periodLength, steepness)
+	end
+
+	--0 is self, 1 is target, 0.5 is midpoint
+	function self.GetInterpolatedValue(phase01, targetCurve, interpolationValue01)
+		local selfValue = self.GetValue(phase01)
+		local targetValue = targetCurve.GetValue(phase01)
+		return selfValue + (targetValue - selfValue) * interpolationValue01
 	end
 
 	return self
