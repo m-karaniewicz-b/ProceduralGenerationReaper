@@ -1,7 +1,7 @@
-if Notes then
+if NoteClasses then
 	return
 end
-Notes = {}
+NoteClasses = {}
 
 function NoteSequence(progressFormula, pitchFormula, basePitch, semitoneRange, lengthInBeats, noteFractionsPerBeat)
 	local self = {
@@ -123,4 +123,4 @@ function NoteData()
 	return self
 end
 
-return Notes
+return NoteClasses

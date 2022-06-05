@@ -1,7 +1,7 @@
-if DataStructures then
+if PhraseClasses then
 	return
 end
-DataStructures = {}
+PhraseClasses = {}
 
 function Phrase(_lengthInBeats, _kickFile, _snareFile, _ornamentFile)
 	local self = {
@@ -108,3 +108,5 @@ function Formula(formulaFunction, periodLength, steepness)
 
 	return self
 end
+
+return PhraseClasses

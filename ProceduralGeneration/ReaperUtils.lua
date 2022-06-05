@@ -67,13 +67,11 @@ function ReaperUtils.InsertAudioItem(filename, track, position)
 
 	reaper.SetMediaItemPosition(item, position, false)
 
-	--Set source from file
 	local ok = reaper.BR_SetTakeSourceFromFile(take, filename, false)
 	if (ok == false) then
 		reaper.ShowConsoleMsg("Setting source from file failed. (" .. filename .. ")\n")
 	end
 
-	--Set item length to source length
 	local length = reaper.GetMediaSourceLength(reaper.GetMediaItemTake_Source(take))
 	reaper.SetMediaItemLength(item, length, false)
 
@@ -189,6 +187,18 @@ function ReaperUtils.SaveProjectAndCopyToPath(path)
 
 	if ok == false then
 		ULog.Print("Copying failed: " .. path)
+	end
+end
+
+function ReaperUtils.EnvelopeTableSortPoints(envelopeTable)
+	for index, value in ipairs(envelopeTable) do
+		reaper.Envelope_SortPoints(value)
+	end
+end
+
+function ReaperUtils.EnvelopeTableDeleteAllPoints(envelopeTable)
+	for index, value in ipairs(envelopeTable) do
+		reaper.DeleteEnvelopePointRange(value, 0, math.huge)
 	end
 end
 

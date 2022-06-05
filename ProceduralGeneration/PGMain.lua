@@ -6,8 +6,8 @@ function Init()
 	URea = require("ReaperUtils")
 	UFile = require("FileUtils")
 	ULog = require("LogUtils")
-	require("DataStructures")
-	require("Notes")
+	require("PhraseClasses")
+	require("NoteClasses")
 end
 
 function DefineGlobalsPaths()
@@ -107,7 +107,7 @@ end
 function CreateComposition()
 	--Clear project
 	URea.ReaperClearProjectItems()
-	EnvelopeTableDeleteAllPoints(BassEnvelopes)
+	URea.EnvelopeTableDeleteAllPoints(BassEnvelopes)
 
 	--Initialize
 	local currentTimePosition = 0
@@ -129,19 +129,7 @@ function CreateComposition()
 		phrase.Insert(currentTimePosition, phraseRandomNoteValues, TrackKick, TrackSideKick, TrackSnare, TrackBass)
 
 	--Sort
-	EnvelopeTableSortPoints(BassEnvelopes)
-end
-
-function EnvelopeTableDeleteAllPoints(envelopeTable)
-	for index, value in ipairs(envelopeTable) do
-		reaper.DeleteEnvelopePointRange(value, 0, math.huge)
-	end
-end
-
-function EnvelopeTableSortPoints(envelopeTable)
-	for index, value in ipairs(envelopeTable) do
-		reaper.Envelope_SortPoints(value)
-	end
+	URea.EnvelopeTableSortPoints(BassEnvelopes)
 end
 
 function CreateOrnamentFile(sourceFiles)
