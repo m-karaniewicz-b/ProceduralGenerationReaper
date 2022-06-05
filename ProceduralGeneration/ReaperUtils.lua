@@ -5,12 +5,12 @@ ReaperUtils = {}
 
 dofile(reaper.GetResourcePath() .. "/UserPlugins/ultraschall_api.lua")
 
-function ReaperUtils.InsertMIDIItemFromPitchValues(pitchValues, track, position, length)
-	local item = reaper.CreateNewMIDIItemInProj(track, position, position + length)
+function ReaperUtils.InsertMIDIItemFromPitchValuesSimple(pitchValues, track, timePosition, length)
+	local item = reaper.CreateNewMIDIItemInProj(track, timePosition, timePosition + length)
 	local take = reaper.GetActiveTake(item)
 
-	local itemPosPPQ = reaper.MIDI_GetPPQPosFromProjTime(take, position)
-	local itemLengthPPQ = reaper.MIDI_GetPPQPosFromProjTime(take, position + length) - itemPosPPQ
+	local itemPosPPQ = reaper.MIDI_GetPPQPosFromProjTime(take, timePosition)
+	local itemLengthPPQ = reaper.MIDI_GetPPQPosFromProjTime(take, timePosition + length) - itemPosPPQ
 
 	local noteCount = #pitchValues
 
@@ -21,6 +21,38 @@ function ReaperUtils.InsertMIDIItemFromPitchValues(pitchValues, track, position,
 	end
 
 	reaper.MIDI_Sort(take)
+end
+
+function ReaperUtils.InsertMIDIItem(
+	track,
+	itemStartTime,
+	itemLength,
+	notePitchTable,
+	noteStartTimeTable,
+	noteLengthTable)
+	local item = reaper.CreateNewMIDIItemInProj(track, itemStartTime, itemStartTime + itemLength)
+	local take = reaper.GetActiveTake(item)
+
+	local noteCount = #notePitchTable
+	for i = 0, noteCount, 1 do
+		ReaperUtils.InsertNoteSimpleProjectTime(take, noteStartTimeTable[i], noteLengthTable[i], notePitchTable[i], 90)
+	end
+
+	reaper.MIDI_Sort(take)
+end
+
+function ReaperUtils.InsertNoteSimpleProjectTime(take, startTimeProjectTime, lengthProjectTime, pitch, velocity)
+	ReaperUtils.InsertNote(
+		take,
+		reaper.MIDI_GetPPQPosFromProjTime(take, startTimeProjectTime),
+		reaper.MIDI_GetPPQPosFromProjTime(take, startTimeProjectTime + lengthProjectTime),
+		pitch,
+		velocity
+	)
+end
+
+function ReaperUtils.InsertNote(take, startTimePPQ, endPPQ, pitch, velocity)
+	reaper.MIDI_InsertNote(take, false, false, startTimePPQ, endPPQ, 0, pitch, velocity, false)
 end
 
 function ReaperUtils.InsertAudioItem(filename, track, position)

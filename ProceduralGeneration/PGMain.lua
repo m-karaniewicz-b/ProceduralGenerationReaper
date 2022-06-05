@@ -7,6 +7,7 @@ function Init()
 	UFile = require("FileUtils")
 	ULog = require("LogUtils")
 	require("DataStructures")
+	require("Notes")
 end
 
 function DefineGlobalsPaths()
@@ -20,8 +21,8 @@ function DefineGlobalsPaths()
 	SubgenerationRenderDirPath = "W:\\Samples\\Procedural\\SubGenerations"
 	GeneratedProjectFilesDirPath = "W:\\Samples\\Procedural\\Generated\\ProjectFiles"
 
-	KickBankDirPath = "W:\\Samples\\Procedural\\Banks\\Kicks"
-	SnareBankDirPath = "W:\\Samples\\Procedural\\Banks\\Snares"
+	PathDirBankKick = "W:\\Samples\\Procedural\\Banks\\Kicks"
+	PathDirBankSnare = "W:\\Samples\\Procedural\\Banks\\Snares"
 	OrnamentSourceBankDirPath = "W:\\Samples\\Procedural\\Banks\\Random"
 
 	LogsDirPath = "W:\\Samples\\Procedural\\Logs"
@@ -40,10 +41,27 @@ function DefineGlobalsTracks()
 	TrackBass = reaper.GetTrack(0, 5)
 end
 
+function DefineGlobalsEnvelopes()
+	--Macro 1 => Intensity
+	--Macro 2 => Timbre 1
+	--Macro 3 => Timbre 2
+	--Macro 4 => Width
+	local synthbassParamNames = {"Macro 1", "Macro 2", "Macro 3", "Macro 4"}
+
+	BassEnvelopes =
+		URea.GetParameterEnvelopesFromTrackFXByNames(TrackBass, synthbassParamNames, reaper.TrackFX_GetInstrument(TrackBass))
+
+	BassEnvelopeIntensity = BassEnvelopes[1]
+	BassEnvelopeTimbre1 = BassEnvelopes[2]
+	BassEnvelopeTimbre2 = BassEnvelopes[3]
+	BassEnvelopeWidth = BassEnvelopes[4]
+end
+
 function Main()
 	Init()
 	DefineGlobalsPaths()
 	DefineGlobalsTracks()
+	DefineGlobalsEnvelopes()
 	StartGeneration(1, false, false)
 end
 
@@ -87,62 +105,53 @@ function GetIterationString(currentIteration, iterationCount)
 end
 
 function CreateComposition()
+	--Clear project
+	URea.ReaperClearProjectItems()
+	EnvelopeTableDeleteAllPoints(BassEnvelopes)
+
+	--Initialize
+	local currentTimePosition = 0
 	math.randomseed(CurrentCompositionSeed)
 
-	URea.ReaperClearProjectItems()
+	--Generate
+	URea.RandomizeBPM(90, 110)
+	PathFileKick = PathDirBankKick .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(PathDirBankKick))
+	PathFileSnare = PathDirBankSnare .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(PathDirBankSnare))
 
-	local currentTimePosition = 0
+	--local bassNoteBlueprint = NoteSequence(,,32,16,4)--NoteSequenceBlueprint(32, 16, 1, 3, 2)
+	local phrase = Phrase(32, PathFileKick, PathFileSnare, nil)
+	--local phrase2 = Phrase(16, PathFileKick, PathFileSnare, nil)
 
-	local kickFile = KickBankDirPath .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(KickBankDirPath))
-	local snareFile = SnareBankDirPath .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(SnareBankDirPath))
+	local phraseRandomNoteValues = UMath.GenerateRandomValuesArray(16)
 
+	--Insert into project
+	currentTimePosition =
+		phrase.Insert(currentTimePosition, phraseRandomNoteValues, TrackKick, TrackSideKick, TrackSnare, TrackBass)
+
+	--Sort
+	EnvelopeTableSortPoints(BassEnvelopes)
+end
+
+function EnvelopeTableDeleteAllPoints(envelopeTable)
+	for index, value in ipairs(envelopeTable) do
+		reaper.DeleteEnvelopePointRange(value, 0, math.huge)
+	end
+end
+
+function EnvelopeTableSortPoints(envelopeTable)
+	for index, value in ipairs(envelopeTable) do
+		reaper.Envelope_SortPoints(value)
+	end
+end
+
+function CreateOrnamentFile(sourceFiles)
 	-- local ornamentSourceCount = 5
 	-- local ornamentSourceFiles
 	-- for i = 0, ornamentSourceCount, 1 do
 	-- 	OrnamentSourceFiles =
 	-- 		OrnamentSourceBankDir .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(OrnamentSourceBankDir))
 	-- end
-
 	--OrnamentFile = CreateOrnamentFile(OrnamentSourceFiles)
-
-	--Macro 1 => Intensity
-	--Macro 2 => Timbre 1
-	--Macro 3 => Timbre 2
-	--Macro 4 => Width
-	local synthbassParamNames = {"Macro 1", "Macro 2", "Macro 3", "Macro 4"}
-
-	local synthbassEnvelopes =
-		URea.GetParameterEnvelopesFromTrackFXByNames(TrackBass, synthbassParamNames, reaper.TrackFX_GetInstrument(TrackBass))
-
-	SBIntensityEnv = synthbassEnvelopes[1]
-	SBTimbre1Env = synthbassEnvelopes[2]
-	SBTimbre2Env = synthbassEnvelopes[3]
-	SBWidthEnv = synthbassEnvelopes[4]
-
-	for index, value in ipairs(synthbassEnvelopes) do
-		reaper.DeleteEnvelopePointRange(value, 0, math.huge)
-	end
-
-	URea.RandomizeBPM(90, 110)
-
-	--TODO: class for curves/envelopes
-	--TODO: replace weights with seed
-
-	local bassNoteBlueprint = NoteSequenceBlueprint(32, 16, 1, 3, 2)
-	local phrase = Phrase(32, kickFile, snareFile, nil, bassNoteBlueprint)
-	local phrase2 = Phrase(16, kickFile, snareFile, nil, bassNoteBlueprint)
-
-	local phraseRandomNoteValues = UMath.GenerateRandomValuesArray(16)
-
-	currentTimePosition =
-		phrase.Insert(currentTimePosition, phraseRandomNoteValues, TrackKick, TrackSideKick, TrackSnare, TrackBass)
-
-	for index, value in ipairs(synthbassEnvelopes) do
-		reaper.Envelope_SortPoints(value)
-	end
-end
-
-function CreateOrnamentFile(sourceFiles)
 end
 
 Main()

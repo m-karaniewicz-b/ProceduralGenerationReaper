@@ -71,4 +71,26 @@ function MathUtils.GetFirstIndexMatchingString(stringTable, stringMatch)
 	return nil
 end
 
+function MathUtils.Random01()
+	return math.random()
+end
+
+function MathUtils.GetNumericTableSum(numericTable)
+	local sum = 0
+	for index, value in ipairs(numericTable) do
+		sum = sum + value
+	end
+	return sum
+end
+
+function MathUtils.GetWeightedIndex(weightsTable, valueSmallerThanSum)
+	local counter = 0
+	for index, value in ipairs(weightsTable) do
+		counter = counter + value
+		if valueSmallerThanSum < counter then
+			return index
+		end
+	end
+end
+
 return MathUtils

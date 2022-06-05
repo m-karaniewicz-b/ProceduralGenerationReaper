@@ -3,23 +3,51 @@ if DataStructures then
 end
 DataStructures = {}
 
-function Phrase(_lengthInBeats, _kickFile, _snareFile, _ornamentFile, _bassNoteSequenceBlueprint)
+function Phrase(_lengthInBeats, _kickFile, _snareFile, _ornamentFile)
 	local self = {
 		lengthInBeats = _lengthInBeats,
 		kickFile = _kickFile,
 		snareFile = _snareFile,
-		ornamentFile = _ornamentFile,
-		bassNoteSequenceBlueprint = _bassNoteSequenceBlueprint
+		ornamentFile = _ornamentFile
 	}
+
+	local function InsertAutomationPoints(offset)
+		--Insert envelope points
+		local pointsPerBeat = AutomationPointsPerBeat
+		local increment = 1 / pointsPerBeat
+		for i = 0, self.lengthInBeats, increment do
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeIntensity, i, offset, UMath.SawUp01(i, self.lengthInBeats, 0.5))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, i, offset, UMath.Sin01(i, self.lengthInBeats / 2, 1))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre2, i, offset, UMath.Triangle01(i, self.lengthInBeats / 2, 1))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, i, offset, 0.3)
+		end
+	end
 
 	function self.Insert(_startPosition, _weights, _kickTrack, _sideKickTrack, _snareTrack, _bassTrack)
 		local offset = _startPosition
 		local lengthTime = ReaperUtils.BeatsToTime(self.lengthInBeats)
 		local endPosition = _startPosition + lengthTime
 
-		local bassMelodyNotes = self.bassNoteSequenceBlueprint.GetNotes(_weights)
+		local maxNotesPerBeat = 4
 		local bassItemCount = 4
 		local bassItemLength = self.lengthInBeats / bassItemCount
+
+		local bassProgressFormula =
+			Formula(
+			function(x)
+				return 0
+			end
+		)
+
+		local bassPitchFormula =
+			Formula(
+			function(x)
+				return x
+			end
+		)
+
+		local bassNoteSequence = NoteSequence(bassProgressFormula, bassPitchFormula, 32, 16, bassItemLength, maxNotesPerBeat)
+		bassNoteSequence.Recalculate()
 
 		for i = 0, self.lengthInBeats - 1, 1 do
 			ReaperUtils.InsertAudioItemPercussive(self.kickFile, _kickTrack, ReaperUtils.BeatsToTime(i) + offset, 0.25, 0.225)
@@ -36,24 +64,23 @@ function Phrase(_lengthInBeats, _kickFile, _snareFile, _ornamentFile, _bassNoteS
 			end
 
 			if i % bassItemLength == 0 then
-				ReaperUtils.InsertMIDIItemFromPitchValues(
-					bassMelodyNotes,
+				local itemStartTime = ReaperUtils.BeatsToTime(i) + offset
+				local itemLength = ReaperUtils.BeatsToTime(bassItemLength)
+				local noteStartTimes, noteLengths =
+					bassNoteSequence.GetNoteStartTimeAndLengthTablesProjectTime(itemStartTime, itemLength)
+
+				ReaperUtils.InsertMIDIItem(
 					_bassTrack,
-					ReaperUtils.BeatsToTime(i) + offset,
-					ReaperUtils.BeatsToTime(bassItemLength)
+					itemStartTime,
+					itemLength,
+					bassNoteSequence.GetNotePitchTable(),
+					noteStartTimes,
+					noteLengths
 				)
 			end
 		end
 
-		--Insert envelope points
-		local pointsPerBeat = AutomationPointsPerBeat
-		local increment = 1 / pointsPerBeat
-		for i = 0, self.lengthInBeats, increment do
-			ReaperUtils.InsertEnvelopePointSimple(SBIntensityEnv, i, offset, UMath.SawUp01(i, self.lengthInBeats, 0.5))
-			ReaperUtils.InsertEnvelopePointSimple(SBTimbre1Env, i, offset, UMath.Sin01(i, self.lengthInBeats / 2, 1))
-			ReaperUtils.InsertEnvelopePointSimple(SBTimbre2Env, i, offset, UMath.Triangle01(i, self.lengthInBeats / 2, 1))
-			ReaperUtils.InsertEnvelopePointSimple(SBWidthEnv, i, offset, 0.3)
-		end
+		InsertAutomationPoints(offset)
 
 		return endPosition
 	end
@@ -61,47 +88,21 @@ function Phrase(_lengthInBeats, _kickFile, _snareFile, _ornamentFile, _bassNoteS
 	return self
 end
 
-function NoteSequenceBlueprint(basePitch, semitoneRange, progressMult, progressCurve, weightsCurve)
+function Formula(formulaFunction, periodLength, steepness)
 	local self = {
-		basePitch = basePitch,
-		semitoneRange = semitoneRange,
-		progressMult = progressMult,
-		progressCurve = progressCurve,
-		weightsCurve = weightsCurve
-	}
-
-	function self.GetNotes(weights)
-		local notes = {}
-		local noteCount = #weights
-		for i = 0, noteCount, 1 do
-			local currProgress = 1 * (1 - self.progressMult) + ((i / noteCount) ^ self.progressCurve) * self.progressMult
-			local remapWeight = (weights[i] * 2) - 1
-			local pitchDelta = currProgress * UMath.Sign(remapWeight) * math.abs(remapWeight) ^ self.weightsCurve
-			pitchDelta = pitchDelta * self.semitoneRange
-			notes[i] = UMath.Round(self.basePitch + pitchDelta)
-		end
-
-		return notes
-	end
-
-	return self
-end
-
-function Curve(formula, periodLength, steepness)
-	local self = {
-		formula = formula,
+		formulaFunction = formulaFunction,
 		periodLength = periodLength or 1,
 		steepness = steepness or 1
 	}
 
-	function self.GetValue(phase01)
-		return self.formula(phase01, periodLength, steepness)
+	function self.GetValue(time01)
+		return self.formulaFunction(time01, periodLength, steepness)
 	end
 
 	--0 is self, 1 is target, 0.5 is midpoint
-	function self.GetInterpolatedValue(phase01, targetCurve, interpolationValue01)
+	function self.GetInterpolatedValue(phase01, targetFormula, interpolationValue01)
 		local selfValue = self.GetValue(phase01)
-		local targetValue = targetCurve.GetValue(phase01)
+		local targetValue = targetFormula.GetValue(phase01)
 		return selfValue + (targetValue - selfValue) * interpolationValue01
 	end
 
