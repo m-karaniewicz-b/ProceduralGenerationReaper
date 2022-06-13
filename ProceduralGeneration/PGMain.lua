@@ -22,6 +22,7 @@ function DefineGlobalsPaths()
 	SubgenerationRenderDirPath = "W:\\Samples\\Procedural\\SubGenerations"
 	GeneratedProjectFilesDirPath = "W:\\Samples\\Procedural\\Generated\\ProjectFiles"
 
+	PathDirBankVitalVST3Bass = "C:\\Repositories\\ReaperScripts\\ProceduralGeneration\\VitalVST3Presets\\Bass"
 	PathDirBankKick = "W:\\Samples\\Procedural\\Banks\\Kicks"
 	PathDirBankSnare = "W:\\Samples\\Procedural\\Banks\\Snares"
 	OrnamentSourceBankDirPath = "W:\\Samples\\Procedural\\Banks\\Random"
@@ -123,6 +124,11 @@ function CreateComposition()
 	PathFileKick = PathDirBankKick .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankKick))
 	PathFileSnare =
 		PathDirBankSnare .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankSnare))
+	PathFilePresetBass =
+		PathDirBankVitalVST3Bass ..
+		"\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankVitalVST3Bass))
+
+	reaper.TrackFX_SetPreset(TrackBass, 0, PathFilePresetBass)
 
 	local phraseLength = 32
 	local phraseRandomValueCache = MathUtils.GenerateRandomValuesArray(1000)

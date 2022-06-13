@@ -59,7 +59,7 @@ function MathUtils.GetRandomArrayValue(array)
 	if (array == nil) then
 		return nil
 	end
-	return array[math.random(0, #array)]
+	return array[math.random(1, #array)]
 end
 
 function MathUtils.GetFirstIndexMatchingString(stringTable, stringMatch)
