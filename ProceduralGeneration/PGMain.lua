@@ -2,10 +2,11 @@ function Init()
 	local path = ({reaper.get_action_context()})[2]:match("^.+[\\//]")
 	package.path = path .. "?.lua"
 
-	UMath = require("MathUtils")
-	URea = require("ReaperUtils")
-	UFile = require("FileUtils")
-	ULog = require("LogUtils")
+	MathUtils = require("MathUtils")
+	ReaperUtils = require("ReaperUtils")
+	FileUtils = require("FileUtils")
+	LogUtils = require("LogUtils")
+	NormalizedFunctionsUtils = require("NormalizedFunctionsUtils")
 	require("PhraseClasses")
 	require("NoteClasses")
 end
@@ -49,7 +50,11 @@ function DefineGlobalsEnvelopes()
 	local synthbassParamNames = {"Macro 1", "Macro 2", "Macro 3", "Macro 4"}
 
 	BassEnvelopes =
-		URea.GetParameterEnvelopesFromTrackFXByNames(TrackBass, synthbassParamNames, reaper.TrackFX_GetInstrument(TrackBass))
+		ReaperUtils.GetParameterEnvelopesFromTrackFXByNames(
+		TrackBass,
+		synthbassParamNames,
+		reaper.TrackFX_GetInstrument(TrackBass)
+	)
 
 	BassEnvelopeIntensity = BassEnvelopes[1]
 	BassEnvelopeTimbre1 = BassEnvelopes[2]
@@ -66,7 +71,7 @@ function Main()
 end
 
 function StartGeneration(compositionCount, saveProjectToFile, renderToFile)
-	URea.BeginProjectModification()
+	ReaperUtils.BeginProjectModification()
 
 	local seedSeparatorMultiplier = 100000
 	local generationName = "Gen_" .. GetDateString()
@@ -80,15 +85,15 @@ function StartGeneration(compositionCount, saveProjectToFile, renderToFile)
 		CreateComposition()
 
 		if (saveProjectToFile) then
-			URea.SaveProjectAndCopyToPath(GeneratedProjectFilesDirPath .. Separator .. currentCompositionName .. ".rpp")
+			ReaperUtils.SaveProjectAndCopyToPath(GeneratedProjectFilesDirPath .. Separator .. currentCompositionName .. ".rpp")
 		end
 
 		if (renderToFile) then
-			URea.RenderProjectToPath(MainRenderDirPath .. Separator .. currentCompositionName .. ".wav")
+			ReaperUtils.RenderProjectToPath(MainRenderDirPath .. Separator .. currentCompositionName .. ".wav")
 		end
 	end
 
-	URea.EndProjectModification(generationName)
+	ReaperUtils.EndProjectModification(generationName)
 end
 
 function GetDateString()
@@ -106,30 +111,34 @@ end
 
 function CreateComposition()
 	--Clear project
-	URea.ReaperClearProjectItems()
-	URea.EnvelopeTableDeleteAllPoints(BassEnvelopes)
+	ReaperUtils.ReaperClearProjectItems()
+	ReaperUtils.EnvelopeTableDeleteAllPoints(BassEnvelopes)
 
 	--Initialize
 	local currentTimePosition = 0
 	math.randomseed(CurrentCompositionSeed)
 
 	--Generate
-	URea.RandomizeBPM(90, 110)
-	PathFileKick = PathDirBankKick .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(PathDirBankKick))
-	PathFileSnare = PathDirBankSnare .. "\\" .. UMath.GetRandomArrayValue(UFile.GetFilesInDirectory(PathDirBankSnare))
+	ReaperUtils.RandomizeBPM(90, 110)
+	PathFileKick = PathDirBankKick .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankKick))
+	PathFileSnare =
+		PathDirBankSnare .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankSnare))
 
-	--local bassNoteBlueprint = NoteSequence(,,32,16,4)--NoteSequenceBlueprint(32, 16, 1, 3, 2)
-	local phrase = Phrase(32, PathFileKick, PathFileSnare, nil)
-	--local phrase2 = Phrase(16, PathFileKick, PathFileSnare, nil)
+	local phraseLength = 32
+	local phraseRandomValueCache = MathUtils.GenerateRandomValuesArray(1000)
 
-	local phraseRandomNoteValues = UMath.GenerateRandomValuesArray(16)
+	local phrase = Phrase(phraseLength, phraseRandomValueCache, PathFileKick, PathFileSnare, nil)
+	phrase.SetTracks(TrackKick, TrackSideKick, TrackSnare, TrackBass)
+
+	local phrase2 = Phrase(phraseLength, phraseRandomValueCache, PathFileKick, PathFileSnare, nil)
+	phrase2.SetTracks(TrackKick, TrackSideKick, TrackSnare, TrackBass)
 
 	--Insert into project
-	currentTimePosition =
-		phrase.Insert(currentTimePosition, phraseRandomNoteValues, TrackKick, TrackSideKick, TrackSnare, TrackBass)
+	currentTimePosition = phrase.Insert(currentTimePosition)
+	currentTimePosition = phrase2.Insert(currentTimePosition)
 
 	--Sort
-	URea.EnvelopeTableSortPoints(BassEnvelopes)
+	ReaperUtils.EnvelopeTableSortPoints(BassEnvelopes)
 end
 
 function CreateOrnamentFile(sourceFiles)

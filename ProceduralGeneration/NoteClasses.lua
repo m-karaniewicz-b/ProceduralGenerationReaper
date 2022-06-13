@@ -3,16 +3,23 @@ if NoteClasses then
 end
 NoteClasses = {}
 
-function NoteSequence(progressFormula, pitchFormula, basePitch, semitoneRange, lengthInBeats, noteFractionsPerBeat)
+function NoteSequence(
+	pitchProgressModifierFormula,
+	pitchDistributionModifierFormula,
+	basePitch,
+	semitoneRange,
+	lengthInBeats,
+	noteFractionsPerBeat,
+	notesLengthWeights)
 	local self = {
-		progressFormula = progressFormula,
-		pitchFormula = pitchFormula,
+		pitchProgressModifierFormula = pitchProgressModifierFormula,
+		pitchDistributionModifierFormula = pitchDistributionModifierFormula,
 		basePitch = basePitch,
 		semitoneRange = semitoneRange,
 		lengthInBeats = lengthInBeats
 	}
 
-	local notesLengthWeights = {0, 1, 1, 1, 1}
+	notesLengthWeights = notesLengthWeights or {0, 1, 1, 1, 0}
 
 	local maximumNoteFractionCount = lengthInBeats * noteFractionsPerBeat
 
@@ -21,14 +28,23 @@ function NoteSequence(progressFormula, pitchFormula, basePitch, semitoneRange, l
 	local noteStartTimeTable = {}
 	local noteLengthTable = {}
 
+	local randomValueIndex = 0
+	local randomValueCache = {}
+
+	local function GetNextRandomValue()
+		local value = randomValueCache[randomValueIndex]
+		randomValueIndex = randomValueIndex + 1
+		return value
+	end
+
 	local function RecalculateNoteTiming()
 		noteDataTable = {}
-		local noteLengthWeightsSum = UMath.GetNumericTableSum(notesLengthWeights)
+		local noteLengthWeightsSum = MathUtils.GetNumericTableSum(notesLengthWeights)
 
 		local noteCounter = 0
 		local noteFractionCounter = 0
 		while noteFractionCounter < maximumNoteFractionCount do
-			local currentNoteLength = UMath.GetWeightedIndex(notesLengthWeights, math.random() * noteLengthWeightsSum)
+			local currentNoteLength = MathUtils.GetWeightedIndex(notesLengthWeights, GetNextRandomValue() * noteLengthWeightsSum)
 
 			--TODO: Last note should not ignore the weights
 			while noteFractionCounter + currentNoteLength > maximumNoteFractionCount do
@@ -45,22 +61,30 @@ function NoteSequence(progressFormula, pitchFormula, basePitch, semitoneRange, l
 
 	local function RecalculateNotePitches()
 		local noteCount = #noteDataTable
-
 		for i = 0, noteCount, 1 do
 			local currentTime = noteDataTable[i].startTimeInFractions / maximumNoteFractionCount
-			local currentProgress = self.progressFormula.GetValue(currentTime)
-			--(1 - self.progressMult) + (timeProgress ^ self.progressCurve) * self.progressMult
-
-			--local remapWeight = (weights[i] * 2) - 1
-
-			--local pitchDelta = self.pitchFormula.GetValue()
-			--currentProgress * UMath.Sign(remapWeight) * math.abs(remapWeight) ^ self.weightsCurve
-
-			noteDataTable[i].SetPitch(UMath.Round(self.basePitch + currentProgress * self.semitoneRange))
+			local progressModifier = self.pitchProgressModifierFormula.GetValue(currentTime)
+			local randomValue = (GetNextRandomValue() * 2) - 1
+			local randomValueModifiedDistribution = self.pitchDistributionModifierFormula.GetValue(math.abs(randomValue))
+			local finalValue = randomValueModifiedDistribution * progressModifier * MathUtils.Sign(randomValue)
+			noteDataTable[i].SetPitch(MathUtils.Round(self.basePitch + finalValue * self.semitoneRange))
 		end
 	end
 
-	function self.Recalculate()
+	function self.SetRandomValuesCache(cache)
+		randomValueIndex = 1
+		randomValueCache = cache
+	end
+
+	function self.Recalculate(newRandomValueCache)
+		newRandomValueCache = newRandomValueCache or randomValueCache
+		self.SetRandomValuesCache(newRandomValueCache)
+
+		if (randomValueCache == nil) then
+			self.SetRandomValuesCache(MathUtils.GenerateRandomValuesArray(1000))
+			LogUtils.Print("Recalculating note sequence without setting random values cache")
+		end
+
 		RecalculateNoteTiming()
 		RecalculateNotePitches()
 

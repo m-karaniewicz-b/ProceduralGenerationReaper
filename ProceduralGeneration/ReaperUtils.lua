@@ -151,7 +151,7 @@ function ReaperUtils.GetParameterEnvelopesFromTrackFXByNames(track, parameterNam
 	--TODO: optimize string search by checking all parameterNames simultaneously
 	local paramIndex
 	for index, value in ipairs(parameterNames) do
-		paramIndex = UMath.GetFirstIndexMatchingString(allFXParameterNames, value)
+		paramIndex = MathUtils.GetFirstIndexMatchingString(allFXParameterNames, value)
 		envelopes[index] = reaper.GetFXEnvelope(track, fxIndex, paramIndex, true)
 	end
 
@@ -183,10 +183,10 @@ function ReaperUtils.SaveProjectAndCopyToPath(path)
 	local _, projFile = reaper.EnumProjects(-1, "")
 
 	local ok, _
-	UFile.CopyFileToPath(projFile, path)
+	FileUtils.CopyFileToPath(projFile, path)
 
 	if ok == false then
-		ULog.Print("Copying failed: " .. path)
+		LogUtils.Print("Copying failed: " .. path)
 	end
 end
 
