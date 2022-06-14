@@ -7,8 +7,10 @@ function Init()
 	FileUtils = require("FileUtils")
 	LogUtils = require("LogUtils")
 	NormalizedFunctionsUtils = require("NormalizedFunctionsUtils")
-	require("PhraseClasses")
-	require("NoteClasses")
+	require("ClassPhrase")
+	require("ClassFormula")
+	require("ClassNoteSequence")
+	require("ClassNoteData")
 end
 
 function DefineGlobalsPaths()
@@ -18,17 +20,17 @@ function DefineGlobalsPaths()
 		Separator = "/"
 	end
 
-	MainRenderDirPath = "W:\\Samples\\Procedural\\Generated"
-	SubgenerationRenderDirPath = "W:\\Samples\\Procedural\\SubGenerations"
-	GeneratedProjectFilesDirPath = "W:\\Samples\\Procedural\\Generated\\ProjectFiles"
+	PathDirMainRenders = "W:\\Samples\\Procedural\\Generated"
+	PathDirSubgenerationRenders = "W:\\Samples\\Procedural\\SubGenerations"
+	PathDirGeneratedProjectFiles = "W:\\Samples\\Procedural\\Generated\\ProjectFiles"
 
 	PathDirBankVitalVST3Bass = "C:\\Repositories\\ReaperScripts\\ProceduralGeneration\\VitalVST3Presets\\Bass"
 	PathDirBankKick = "W:\\Samples\\Procedural\\Banks\\Kicks"
 	PathDirBankSnare = "W:\\Samples\\Procedural\\Banks\\Snares"
-	OrnamentSourceBankDirPath = "W:\\Samples\\Procedural\\Banks\\Random"
+	PathDirBankOrnamentSource = "W:\\Samples\\Procedural\\Banks\\Random"
 
-	LogsDirPath = "W:\\Samples\\Procedural\\Logs"
-	ProjectTemplateFilePath = "W:\\Samples\\Procedural\\Banks\\TrackTemplates\\Generation2.RTrackTemplate"
+	PathDirLogs = "W:\\Samples\\Procedural\\Logs"
+	PathFileProjectTemplate = "W:\\Samples\\Procedural\\Banks\\TrackTemplates\\Generation2.RTrackTemplate"
 
 	--Load file template
 	--reaper.Main_openProject(templateFileName)
@@ -81,16 +83,16 @@ function StartGeneration(compositionCount, saveProjectToFile, renderToFile)
 		local currentCompositionName = generationName .. GetIterationString(i, compositionCount)
 
 		CurrentCompositionSeed = os.time() * seedSeparatorMultiplier + i
-		AutomationPointsPerBeat = 1
+		AutomationPointsPerBeat = 4
 
 		CreateComposition()
 
 		if (saveProjectToFile) then
-			ReaperUtils.SaveProjectAndCopyToPath(GeneratedProjectFilesDirPath .. Separator .. currentCompositionName .. ".rpp")
+			ReaperUtils.SaveProjectAndCopyToPath(PathDirGeneratedProjectFiles .. Separator .. currentCompositionName .. ".rpp")
 		end
 
 		if (renderToFile) then
-			ReaperUtils.RenderProjectToPath(MainRenderDirPath .. Separator .. currentCompositionName .. ".wav")
+			ReaperUtils.RenderProjectToPath(PathDirMainRenders .. Separator .. currentCompositionName .. ".wav")
 		end
 	end
 
@@ -120,7 +122,6 @@ function CreateComposition()
 	math.randomseed(CurrentCompositionSeed)
 
 	--Generate
-	ReaperUtils.RandomizeBPM(90, 110)
 	PathFileKick = PathDirBankKick .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankKick))
 	PathFileSnare =
 		PathDirBankSnare .. "\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankSnare))
@@ -129,6 +130,7 @@ function CreateComposition()
 		"\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankVitalVST3Bass))
 
 	reaper.TrackFX_SetPreset(TrackBass, 0, PathFilePresetBass)
+	ReaperUtils.RandomizeBPM(90, 110)
 
 	local phraseLength = 32
 	local phraseRandomValueCache = MathUtils.GenerateRandomValuesArray(1000)

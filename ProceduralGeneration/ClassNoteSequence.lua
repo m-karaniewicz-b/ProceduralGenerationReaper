@@ -1,8 +1,3 @@
-if NoteClasses then
-	return
-end
-NoteClasses = {}
-
 function NoteSequence(
 	pitchProgressModifierFormula,
 	pitchDistributionModifierFormula,
@@ -131,20 +126,3 @@ function NoteSequence(
 
 	return self
 end
-
-function NoteData()
-	local self = {}
-
-	function self.SetTiming(startTimeInNoteFractions, lengthInNoteFractions)
-		self.startTimeInFractions = startTimeInNoteFractions
-		self.lengthInFractions = lengthInNoteFractions
-	end
-
-	function self.SetPitch(pitch)
-		self.pitch = pitch
-	end
-
-	return self
-end
-
-return NoteClasses

@@ -1,8 +1,3 @@
-if PhraseClasses then
-	return
-end
-PhraseClasses = {}
-
 function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornamentFile)
 	local self = {
 		lengthInBeats = _lengthInBeats,
@@ -17,23 +12,18 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 	local bassTrack
 
 	local function InsertEnvelopePoints(offset)
+		local formulaMacro1 = NormalizedFunctionsUtils.GetRandomIncreasing()
+		local formulaMacro2 = NormalizedFunctionsUtils.GetRandomPeriodic()
+		local formulaMacro3 = NormalizedFunctionsUtils.GetRandomPeriodic()
+		local formulaMacro4 = NormalizedFunctionsUtils.GetRandomPeriodic()
 		local pointsPerBeat = AutomationPointsPerBeat
 		local increment = 1 / pointsPerBeat
 		for i = 0, self.lengthInBeats, increment do
-			ReaperUtils.InsertEnvelopePointSimple(
-				BassEnvelopeIntensity,
-				i,
-				offset,
-				MathUtils.SawUp01(i, self.lengthInBeats, 0.5)
-			)
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, i, offset, MathUtils.Sin01(i, self.lengthInBeats / 2, 1))
-			ReaperUtils.InsertEnvelopePointSimple(
-				BassEnvelopeTimbre2,
-				i,
-				offset,
-				MathUtils.Triangle01(i, self.lengthInBeats / 2, 1)
-			)
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, i, offset, 0.3)
+			local progress = i / self.lengthInBeats
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeIntensity, i, offset, formulaMacro1.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, i, offset, formulaMacro2.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre2, i, offset, formulaMacro3.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, i, offset, formulaMacro4.GetValue(progress))
 		end
 	end
 
@@ -49,9 +39,9 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 		local lengthTime = ReaperUtils.BeatsToTime(self.lengthInBeats)
 		local endPosition = _startPosition + lengthTime
 
-		local bassMaxNotesPerBeat = 8
 		local bassItemCount = 4
 		local bassItemLength = self.lengthInBeats / bassItemCount
+		local bassMaxNotesPerBeat = 8
 		local bassNotesPitchBase = 32
 		local bassNotesPitchRange = 16
 		local bassNotesTimeWeightTable = {0, 0, 0, 1, 0, 8}
@@ -66,7 +56,7 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 		local bassPitchFormula =
 			Formula(
 			function(x)
-				return x ^ 0.25
+				return x
 			end
 		)
 
@@ -107,26 +97,3 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 
 	return self
 end
-
-function Formula(formulaFunction, periodLength, steepness)
-	local self = {
-		formulaFunction = formulaFunction,
-		periodLength = periodLength or 1,
-		steepness = steepness or 1
-	}
-
-	function self.GetValue(time01)
-		return self.formulaFunction(time01, periodLength, steepness)
-	end
-
-	--0 is self, 1 is target, 0.5 is midpoint
-	function self.GetInterpolatedValue(phase01, targetFormula, interpolationValue01)
-		local selfValue = self.GetValue(phase01)
-		local targetValue = targetFormula.GetValue(phase01)
-		return selfValue + (targetValue - selfValue) * interpolationValue01
-	end
-
-	return self
-end
-
-return PhraseClasses
