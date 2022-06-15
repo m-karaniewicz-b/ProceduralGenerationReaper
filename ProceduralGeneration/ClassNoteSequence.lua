@@ -10,8 +10,7 @@ function NoteSequence(
 		pitchProgressModifierFormula = pitchProgressModifierFormula,
 		pitchDistributionModifierFormula = pitchDistributionModifierFormula,
 		basePitch = basePitch,
-		semitoneRange = semitoneRange,
-		lengthInBeats = lengthInBeats
+		semitoneRange = semitoneRange
 	}
 
 	notesLengthWeights = notesLengthWeights or {0, 1, 1, 1, 0}
@@ -109,6 +108,10 @@ function NoteSequence(
 
 	function self.GetNoteLengthTable()
 		return noteLengthTable
+	end
+
+	function self.GetLength()
+		return lengthInBeats
 	end
 
 	function self.GetNoteStartTimeAndLengthTablesProjectTime(itemStartTime, itemLength)

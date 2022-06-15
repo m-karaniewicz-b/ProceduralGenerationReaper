@@ -6,6 +6,9 @@ function Formula(formulaFunction, steepness, frequency)
 	}
 
 	function self.GetValue(time01)
+		if (self.formulaFunction == nil) then
+			return 0
+		end
 		return self.formulaFunction(time01, 1 / self.frequency, self.steepness)
 	end
 

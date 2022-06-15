@@ -1,9 +1,11 @@
-function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornamentFile)
+function Phrase(_lengthInBeats, _rngContainer, _bassNoteSequence, _kickFile, _snareFile, _ornamentFile)
 	local self = {
 		lengthInBeats = _lengthInBeats,
 		kickFile = _kickFile,
 		snareFile = _snareFile,
-		ornamentFile = _ornamentFile
+		ornamentFile = _ornamentFile,
+		bassNoteSequence = _bassNoteSequence,
+		rngContainer = _rngContainer
 	}
 
 	local kickTrack
@@ -12,18 +14,18 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 	local bassTrack
 
 	local function InsertEnvelopePoints(offset)
-		local formulaMacro1 = NormalizedFunctionsUtils.GetRandomIncreasing()
-		local formulaMacro2 = NormalizedFunctionsUtils.GetRandomPeriodic()
-		local formulaMacro3 = NormalizedFunctionsUtils.GetRandomPeriodic()
-		local formulaMacro4 = NormalizedFunctionsUtils.GetRandomPeriodic()
+		local intensityFormula = NormalizedFunctionsUtils.GetRandomIncreasing(self.rngContainer)
+		local timbre1Formula = NormalizedFunctionsUtils.GetRandomPeriodic(self.rngContainer)
+		local timbre2Value = self.rngContainer.GetNext()
+		local widthFormula = NormalizedFunctionsUtils.GetRandomPeriodic(self.rngContainer)
 		local pointsPerBeat = AutomationPointsPerBeat
 		local increment = 1 / pointsPerBeat
 		for i = 0, self.lengthInBeats, increment do
 			local progress = i / self.lengthInBeats
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeIntensity, i, offset, formulaMacro1.GetValue(progress))
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, i, offset, formulaMacro2.GetValue(progress))
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre2, i, offset, formulaMacro3.GetValue(progress))
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, i, offset, formulaMacro4.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeIntensity, i, offset, intensityFormula.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, i, offset, timbre1Formula.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre2, i, offset, timbre2Value)
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, i, offset, widthFormula.GetValue(progress))
 		end
 	end
 
@@ -39,38 +41,7 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 		local lengthTime = ReaperUtils.BeatsToTime(self.lengthInBeats)
 		local endPosition = _startPosition + lengthTime
 
-		local bassItemCount = 4
-		local bassItemLength = self.lengthInBeats / bassItemCount
-		local bassMaxNotesPerBeat = 8
-		local bassNotesPitchBase = 32
-		local bassNotesPitchRange = 16
-		local bassNotesTimeWeightTable = {0, 0, 0, 1, 0, 8}
-
-		local bassProgressFormula =
-			Formula(
-			function(x)
-				return x ^ 3
-			end
-		)
-
-		local bassPitchFormula =
-			Formula(
-			function(x)
-				return x
-			end
-		)
-
-		local bassNoteSequence =
-			NoteSequence(
-			bassProgressFormula,
-			bassPitchFormula,
-			bassNotesPitchBase,
-			bassNotesPitchRange,
-			bassItemLength,
-			bassMaxNotesPerBeat,
-			bassNotesTimeWeightTable
-		)
-		bassNoteSequence.Recalculate(randomValuesCache)
+		local bassLength = self.bassNoteSequence.GetLength()
 
 		for i = 0, self.lengthInBeats - 1, 1 do
 			ReaperUtils.InsertAudioItemPercussive(self.kickFile, kickTrack, ReaperUtils.BeatsToTime(i) + offset, 0.25, 0.225)
@@ -80,12 +51,12 @@ function Phrase(_lengthInBeats, randomValuesCache, _kickFile, _snareFile, _ornam
 				ReaperUtils.InsertAudioItemPercussive(self.snareFile, snareTrack, ReaperUtils.BeatsToTime(i) + offset, 0.4, 0.225)
 			end
 
-			if i % bassItemLength == 0 then
+			if i % bassLength == 0 then
 				local itemStartTime = ReaperUtils.BeatsToTime(i) + offset
-				local itemLength = ReaperUtils.BeatsToTime(bassItemLength)
+				local itemLength = ReaperUtils.BeatsToTime(bassLength)
 				local noteStartTimes, noteLengths =
-					bassNoteSequence.GetNoteStartTimeAndLengthTablesProjectTime(itemStartTime, itemLength)
-				local notePitches = bassNoteSequence.GetNotePitchTable()
+					self.bassNoteSequence.GetNoteStartTimeAndLengthTablesProjectTime(itemStartTime, itemLength)
+				local notePitches = self.bassNoteSequence.GetNotePitchTable()
 				ReaperUtils.InsertMIDIItem(bassTrack, itemStartTime, itemLength, notePitches, noteStartTimes, noteLengths)
 			end
 		end
