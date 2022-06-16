@@ -1,11 +1,11 @@
-function Phrase(_lengthInBeats, _rngContainer, _bassNoteSequence, _kickFile, _snareFile, _ornamentFile)
+function Phrase(_rngContainer, _lengthInBeats, _bassNoteSequence, _kickFile, _snareFile, _ornamentFile)
 	local self = {
+		rngContainer = _rngContainer,
 		lengthInBeats = _lengthInBeats,
 		kickFile = _kickFile,
 		snareFile = _snareFile,
 		ornamentFile = _ornamentFile,
-		bassNoteSequence = _bassNoteSequence,
-		rngContainer = _rngContainer
+		bassNoteSequence = _bassNoteSequence
 	}
 
 	local kickTrack

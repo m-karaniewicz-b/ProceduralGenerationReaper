@@ -2,9 +2,18 @@ function RngContainer(_valueCount)
 	local self = {}
 	local valuesCache
 	local valueIndex
+	local indexCheckpoints = {}
 
 	function self.ResetIndex()
 		valueIndex = 1
+	end
+
+	function self.CheckpointCreate(checkpointId)
+		indexCheckpoints[checkpointId] = valueIndex
+	end
+
+	function self.CheckpointLoad(checkpointId)
+		valueIndex = indexCheckpoints[checkpointId]
 	end
 
 	function self.SetValues(newValuesCache)

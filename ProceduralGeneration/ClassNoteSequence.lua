@@ -1,44 +1,37 @@
 function NoteSequence(
-	pitchProgressModifierFormula,
-	pitchDistributionModifierFormula,
-	basePitch,
-	semitoneRange,
-	lengthInBeats,
-	noteFractionsPerBeat,
-	notesLengthWeights)
+	_rngContainer,
+	_lengthInBeats,
+	_noteFractionsPerBeat,
+	_notesLengthWeights,
+	_pitchBaseSemitones,
+	_pitchRangeSemitones,
+	_pitchProgressModifierFormula,
+	_pitchDistributionModifierFormula)
 	local self = {
-		pitchProgressModifierFormula = pitchProgressModifierFormula,
-		pitchDistributionModifierFormula = pitchDistributionModifierFormula,
-		basePitch = basePitch,
-		semitoneRange = semitoneRange
+		pitchProgressModifierFormula = _pitchProgressModifierFormula,
+		pitchDistributionModifierFormula = _pitchDistributionModifierFormula,
+		pitchBaseSemitones = _pitchBaseSemitones,
+		pitchRangeSemitones = _pitchRangeSemitones
 	}
 
-	notesLengthWeights = notesLengthWeights or {0, 1, 1, 1, 0}
-
-	local maximumNoteFractionCount = lengthInBeats * noteFractionsPerBeat
+	_notesLengthWeights = _notesLengthWeights or {0, 1, 1, 1, 0}
+	local maximumNoteFractionCount = _lengthInBeats * _noteFractionsPerBeat
+	local rngContainer = _rngContainer
 
 	local noteDataTable = {}
 	local notePitchTable = {}
 	local noteStartTimeTable = {}
 	local noteLengthTable = {}
 
-	local randomValueIndex = 0
-	local randomValueCache = {}
-
-	local function GetNextRandomValue()
-		local value = randomValueCache[randomValueIndex]
-		randomValueIndex = randomValueIndex + 1
-		return value
-	end
-
-	local function RecalculateNoteTiming()
+	local function CalculateNoteTiming()
 		noteDataTable = {}
-		local noteLengthWeightsSum = MathUtils.GetNumericTableSum(notesLengthWeights)
+		local noteLengthWeightsSum = MathUtils.GetNumericTableSum(_notesLengthWeights)
 
 		local noteCounter = 0
 		local noteFractionCounter = 0
 		while noteFractionCounter < maximumNoteFractionCount do
-			local currentNoteLength = MathUtils.GetWeightedIndex(notesLengthWeights, GetNextRandomValue() * noteLengthWeightsSum)
+			local currentNoteLength =
+				MathUtils.GetWeightedIndex(_notesLengthWeights, rngContainer.GetNext() * noteLengthWeightsSum)
 
 			--TODO: Last note should not ignore the weights
 			while noteFractionCounter + currentNoteLength > maximumNoteFractionCount do
@@ -53,35 +46,19 @@ function NoteSequence(
 		end
 	end
 
-	local function RecalculateNotePitches()
+	local function CalculateNotePitches()
 		local noteCount = #noteDataTable
 		for i = 0, noteCount, 1 do
 			local currentTime = noteDataTable[i].startTimeInFractions / maximumNoteFractionCount
 			local progressModifier = self.pitchProgressModifierFormula.GetValue(currentTime)
-			local randomValue = (GetNextRandomValue() * 2) - 1
+			local randomValue = (rngContainer.GetNext() * 2) - 1
 			local randomValueModifiedDistribution = self.pitchDistributionModifierFormula.GetValue(math.abs(randomValue))
 			local finalValue = randomValueModifiedDistribution * progressModifier * MathUtils.Sign(randomValue)
-			noteDataTable[i].SetPitch(MathUtils.Round(self.basePitch + finalValue * self.semitoneRange))
+			noteDataTable[i].SetPitch(MathUtils.Round(self.pitchBaseSemitones + finalValue * self.pitchRangeSemitones))
 		end
 	end
 
-	function self.SetRandomValuesCache(cache)
-		randomValueIndex = 1
-		randomValueCache = cache
-	end
-
-	function self.Recalculate(newRandomValueCache)
-		newRandomValueCache = newRandomValueCache or randomValueCache
-		self.SetRandomValuesCache(newRandomValueCache)
-
-		if (randomValueCache == nil) then
-			self.SetRandomValuesCache(MathUtils.GenerateRandomValuesArray(1000))
-			LogUtils.Print("Recalculating note sequence without setting random values cache")
-		end
-
-		RecalculateNoteTiming()
-		RecalculateNotePitches()
-
+	local function CacheNoteValues()
 		local noteCount = #noteDataTable
 		notePitchTable = {}
 		noteStartTimeTable = {}
@@ -92,6 +69,12 @@ function NoteSequence(
 			noteStartTimeTable[i] = noteDataTable[i].startTimeInFractions
 			noteLengthTable[i] = noteDataTable[i].lengthInFractions
 		end
+	end
+
+	function self.RecalculatePitch()
+		rngContainer.CheckpointLoad(1)
+		CalculateNotePitches()
+		CacheNoteValues()
 	end
 
 	function self.GetNoteDataTable()
@@ -111,7 +94,7 @@ function NoteSequence(
 	end
 
 	function self.GetLength()
-		return lengthInBeats
+		return _lengthInBeats
 	end
 
 	function self.GetNoteStartTimeAndLengthTablesProjectTime(itemStartTime, itemLength)
@@ -126,6 +109,26 @@ function NoteSequence(
 
 		return noteStartTimeTableProjectTime, noteLengthTableProjectTime
 	end
+
+	function self.Copy()
+		local newNS =
+			NoteSequence(
+			_rngContainer.Copy(),
+			_lengthInBeats,
+			_noteFractionsPerBeat,
+			_notesLengthWeights,
+			self.pitchBaseSemitones,
+			self.pitchRangeSemitones,
+			self.pitchProgressModifierFormula,
+			self.pitchDistributionModifierFormula
+		)
+		return newNS
+	end
+
+	rngContainer.ResetIndex()
+	CalculateNoteTiming()
+	rngContainer.CheckpointCreate(1)
+	self.RecalculatePitch()
 
 	return self
 end

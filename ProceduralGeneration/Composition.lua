@@ -3,8 +3,12 @@ local function ClearProject()
 	ReaperUtils.EnvelopeTableDeleteAllPoints(BassEnvelopesTable)
 end
 
-local function Initialize()
+local function InitializeRng()
 	math.randomseed(CurrentCompositionSeed)
+end
+
+local function SortEnvelopePoints()
+	ReaperUtils.EnvelopeTableSortPoints(BassEnvelopesTable)
 end
 
 local function SelectFiles()
@@ -16,41 +20,37 @@ local function SelectFiles()
 		"\\" .. MathUtils.GetRandomArrayValue(FileUtils.GetFilesInDirectory(PathDirBankVitalVST3Bass))
 end
 
-local function CreateBassNoteSequence(phraseLength)
-	local bassNotesRng = RngContainer(1000)
+local function SetPresets()
+	reaper.TrackFX_SetPreset(TrackBass, 0, PathFilePresetBass)
+end
 
+local function SetBPM()
+	ReaperUtils.RandomizeBPM(90, 110)
+end
+
+local function CreateBassNoteSequence(phraseLength)
+	local bassNoteSequenceRngContainer = RngContainer(1000)
 	local bassItemsPerPhrase = 4
 	local bassItemLength = phraseLength / bassItemsPerPhrase
 	local bassMaxNotesPerBeat = 8
+	local bassNotesTimeWeightTable = {0, 0, 0, 1, 0, 8}
+
 	local bassNotesPitchBase = 32
 	local bassNotesPitchRange = 16
-	local bassNotesTimeWeightTable = {0, 0, 0, 1, 0, 8}
-	local bassProgressFormula =
-		Formula(
-		function(x)
-			return x ^ 4
-		end
-	)
-	local bassPitchFormula =
-		Formula(
-		function(x)
-			return x ^ 0.5
-		end
-	)
+	local bassProgressFormula = Formula(MathUtils.SawUp01, 0.3, 1)
+	local bassPitchFormula = Formula(MathUtils.SawUp01, 2, 1)
 
 	local bassNoteSequence =
 		NoteSequence(
-		bassProgressFormula,
-		bassPitchFormula,
-		bassNotesPitchBase,
-		bassNotesPitchRange,
+		bassNoteSequenceRngContainer,
 		bassItemLength,
 		bassMaxNotesPerBeat,
-		bassNotesTimeWeightTable
+		bassNotesTimeWeightTable,
+		bassNotesPitchBase,
+		bassNotesPitchRange,
+		bassProgressFormula,
+		bassPitchFormula
 	)
-
-	--TODO: implement RngContainer into NoteSequence
-	bassNoteSequence.Recalculate(MathUtils.GenerateRandomValuesArray(1000))
 
 	return bassNoteSequence
 end
@@ -70,21 +70,35 @@ end
 
 function CreateComposition()
 	ClearProject()
-	Initialize()
+	InitializeRng()
 	SelectFiles()
-	reaper.TrackFX_SetPreset(TrackBass, 0, PathFilePresetBass)
-	ReaperUtils.RandomizeBPM(90, 110)
+	SetPresets()
+	SetBPM()
 
 	local phraseLength = 32
-	local bassNoteSequence = CreateBassNoteSequence(32)
-	local phraseRng = RngContainer(1000)
+	local phraseRngContainer = RngContainer(1000)
 
-	local phrase = Phrase(phraseLength, phraseRng.Copy(), bassNoteSequence, PathFileKick, PathFileSnare, nil)
-	local phrase2 = Phrase(phraseLength, phraseRng.Copy(), bassNoteSequence, PathFileKick, PathFileSnare, nil)
-	local phrase3 = Phrase(phraseLength, phraseRng.Copy(), bassNoteSequence, PathFileKick, PathFileSnare, nil)
+	local bassNoteSequence1 = CreateBassNoteSequence(32)
+	bassNoteSequence1.RecalculatePitch()
 
-	local phraseQueue = {phrase, phrase2, phrase3}
+	local bassNoteSequence2 = bassNoteSequence1.Copy()
+	--bassNoteSequence2.pitchRangeSemitones = bassNoteSequence2.pitchRangeSemitones * 2
+	bassNoteSequence2.pitchDistributionModifierFormula.steepness =
+		bassNoteSequence2.pitchDistributionModifierFormula.steepness * 8
+	bassNoteSequence2.RecalculatePitch()
+
+	local bassNoteSequence3 = bassNoteSequence2.Copy()
+	--bassNoteSequence2.pitchRangeSemitones = bassNoteSequence2.pitchRangeSemitones * 2
+	bassNoteSequence3.pitchDistributionModifierFormula.steepness =
+		bassNoteSequence3.pitchDistributionModifierFormula.steepness / 8
+	bassNoteSequence3.RecalculatePitch()
+
+	local phrase1 = Phrase(phraseRngContainer.Copy(), phraseLength, bassNoteSequence1, PathFileKick, PathFileSnare, nil)
+	local phrase2 = Phrase(phraseRngContainer.Copy(), phraseLength, bassNoteSequence2, PathFileKick, PathFileSnare, nil)
+	local phrase3 = Phrase(phraseRngContainer.Copy(), phraseLength, bassNoteSequence3, PathFileKick, PathFileSnare, nil)
+
+	local phraseQueue = {phrase1, phrase2, phrase3}
 	PhraseQueueSetTracks(phraseQueue)
 	PhraseQueueInsert(phraseQueue)
-	ReaperUtils.EnvelopeTableSortPoints(BassEnvelopesTable)
+	SortEnvelopePoints()
 end
