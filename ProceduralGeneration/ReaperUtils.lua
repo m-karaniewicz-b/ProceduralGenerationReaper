@@ -158,8 +158,8 @@ function ReaperUtils.GetParameterEnvelopesFromTrackFXByNames(track, parameterNam
 	return envelopes
 end
 
-function ReaperUtils.InsertEnvelopePointSimple(envelope, beatOffset, timeOffset, value)
-	reaper.InsertEnvelopePoint(envelope, reaper.TimeMap2_beatsToTime(0, beatOffset) + timeOffset, value, 0, 1, false, true)
+function ReaperUtils.InsertEnvelopePointSimple(envelope, timeOffset, value)
+	reaper.InsertEnvelopePoint(envelope, timeOffset, value, 0, 1, false, true)
 end
 
 function ReaperUtils.BeatsToTime(beats)

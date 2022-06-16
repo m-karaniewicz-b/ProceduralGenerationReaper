@@ -55,9 +55,23 @@ local function CreateBassNoteSequence(phraseLength)
 	return bassNoteSequence
 end
 
+-- local function CreatePhrase(phraseLength, compositionProgress)
+-- 		local verticalIntroMain = PhraseVerticalData(false, false, false, true, 0, 1)
+-- 	local verticalIntroEnd = PhraseVerticalData(false, true, false, true, 0, 1)
+-- 	local introPhraseRngContainer = RngContainer(rngMaxCountDefault)
+-- 	local phraseIntro =
+-- 		Phrase(introPhraseRngContainer, bassNoteSequenceA, phraseLength, 0.5, verticalIntroMain, verticalIntroEnd)
+-- end
+
 local function PhraseQueueSetTracks(phraseQueue)
 	for index, value in ipairs(phraseQueue) do
 		value.SetTracks(TrackKick, TrackSideKick, TrackSnare, TrackBass)
+	end
+end
+
+local function PhraseQueueSetFiles(phraseQueue)
+	for index, value in ipairs(phraseQueue) do
+		value.SetFiles(PathFileKick, PathFileSnare, nil)
 	end
 end
 
@@ -76,28 +90,37 @@ function CreateComposition()
 	SetBPM()
 
 	local phraseLength = 32
-	local phraseRngContainer = RngContainer(1000)
+	local rngMaxCountDefault = 1000
 
-	local bassNoteSequence1 = CreateBassNoteSequence(32)
-	bassNoteSequence1.RecalculatePitch()
+	local bassNoteSequenceA = CreateBassNoteSequence(32)
+	local bassNoteSequenceB = bassNoteSequenceA.Copy()
+	bassNoteSequenceB.pitchDistributionModifierFormula.steepness =
+		bassNoteSequenceB.pitchDistributionModifierFormula.steepness * 8
+	bassNoteSequenceB.RecalculatePitch()
 
-	local bassNoteSequence2 = bassNoteSequence1.Copy()
-	--bassNoteSequence2.pitchRangeSemitones = bassNoteSequence2.pitchRangeSemitones * 2
-	bassNoteSequence2.pitchDistributionModifierFormula.steepness =
-		bassNoteSequence2.pitchDistributionModifierFormula.steepness * 8
-	bassNoteSequence2.RecalculatePitch()
+	local verticalIntroMain = PhraseVerticalData(false, false, false, true, 0, 1)
+	local verticalIntroEnd = PhraseVerticalData(false, true, false, true, 0, 1)
+	local introPhraseRngContainer = RngContainer(rngMaxCountDefault)
+	local phraseIntro =
+		Phrase(introPhraseRngContainer, bassNoteSequenceA, phraseLength, 0.5, verticalIntroMain, verticalIntroEnd)
 
-	local bassNoteSequence3 = bassNoteSequence2.Copy()
-	--bassNoteSequence2.pitchRangeSemitones = bassNoteSequence2.pitchRangeSemitones * 2
-	bassNoteSequence3.pitchDistributionModifierFormula.steepness =
-		bassNoteSequence3.pitchDistributionModifierFormula.steepness / 8
-	bassNoteSequence3.RecalculatePitch()
+	local verticalPartAMain = PhraseVerticalData(true, true, true, true, 0, 1)
+	local verticalPartAEnd = PhraseVerticalData(false, true, false, true, 0, 1)
+	local phrasePartA =
+		Phrase(RngContainer(rngMaxCountDefault), bassNoteSequenceB, phraseLength, 0.875, verticalPartAMain, verticalPartAEnd)
 
-	local phrase1 = Phrase(phraseRngContainer.Copy(), phraseLength, bassNoteSequence1, PathFileKick, PathFileSnare, nil)
-	local phrase2 = Phrase(phraseRngContainer.Copy(), phraseLength, bassNoteSequence2, PathFileKick, PathFileSnare, nil)
-	local phrase3 = Phrase(phraseRngContainer.Copy(), phraseLength, bassNoteSequence3, PathFileKick, PathFileSnare, nil)
+	local verticalPartBMain = PhraseVerticalData(true, true, true, true, 0, 1)
+	local verticalPartBEnd = PhraseVerticalData(false, true, true, true, 0, 1)
+	local phrasePartB =
+		Phrase(RngContainer(rngMaxCountDefault), bassNoteSequenceB, phraseLength, 0.875, verticalPartBMain, verticalPartBEnd)
 
-	local phraseQueue = {phrase1, phrase2, phrase3}
+	local verticalOutroMain = PhraseVerticalData(true, false, true, true, 0, 1)
+	local verticalOutroEnd = PhraseVerticalData(false, false, true, true, 0, 1)
+	local phraseOutro =
+		Phrase(RngContainer(rngMaxCountDefault), bassNoteSequenceA, phraseLength, 0.875, verticalOutroMain, verticalOutroEnd)
+
+	local phraseQueue = {phraseIntro, phrasePartA, phrasePartB, phraseOutro}
+	PhraseQueueSetFiles(phraseQueue)
 	PhraseQueueSetTracks(phraseQueue)
 	PhraseQueueInsert(phraseQueue)
 	SortEnvelopePoints()
