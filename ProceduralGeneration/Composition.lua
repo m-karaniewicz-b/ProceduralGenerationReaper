@@ -154,29 +154,6 @@ function CreateComposition(phraseCountMin, phraseCountMax, phraseLength)
 			CreatePhrase(phraseLength, (i - 1) / phraseCount, bassNoteSequenceVariations, compositionRngContainer)
 	end
 
-	-- local verticalIntroMain = PhraseVerticalData(false, false, false, true, 0, 1)
-	-- local verticalIntroEnd = PhraseVerticalData(false, true, false, true, 0, 1)
-	-- local introPhraseRngContainer = RngContainer()
-	-- local phraseIntro =
-	-- 	Phrase(introPhraseRngContainer, bassNoteSequenceVariations[1], phraseLength, 0.5, verticalIntroMain, verticalIntroEnd)
-
-	-- local verticalPartAMain = PhraseVerticalData(true, true, true, true, 0, 1)
-	-- local verticalPartAEnd = PhraseVerticalData(false, true, false, true, 0, 1)
-	-- local phrasePartA =
-	-- 	Phrase(RngContainer(), bassNoteSequenceVariations[2], phraseLength, 0.875, verticalPartAMain, verticalPartAEnd)
-
-	-- local verticalPartBMain = PhraseVerticalData(true, true, true, true, 0, 1)
-	-- local verticalPartBEnd = PhraseVerticalData(false, true, true, true, 0, 1)
-	-- local phrasePartB =
-	-- 	Phrase(RngContainer(), bassNoteSequenceVariations[2], phraseLength, 0.875, verticalPartBMain, verticalPartBEnd)
-
-	-- local verticalOutroMain = PhraseVerticalData(true, false, true, true, 0, 1)
-	-- local verticalOutroEnd = PhraseVerticalData(false, false, true, true, 0, 1)
-	-- local phraseOutro =
-	-- 	Phrase(RngContainer(), bassNoteSequenceVariations[1], phraseLength, 0.875, verticalOutroMain, verticalOutroEnd)
-
-	-- phraseQueue = {phraseIntro, phrasePartA, phrasePartB, phraseOutro}
-
 	PhraseQueueSetFiles(phraseQueue)
 	PhraseQueueSetTracks(phraseQueue)
 
