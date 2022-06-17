@@ -12,6 +12,10 @@ function Formula(formulaFunction, steepness, frequency)
 		return self.formulaFunction(time01, 1 / self.frequency, self.steepness)
 	end
 
+	function self.CheckRandom(time01, rngContainer)
+		return self.GetValue(time01) > rngContainer.GetNext()
+	end
+
 	--0 is self, 1 is target, 0.5 is midpoint
 	function self.GetInterpolatedValue(phase01, targetFormula, interpolationValue01)
 		local selfValue = self.GetValue(phase01)

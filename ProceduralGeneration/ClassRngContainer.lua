@@ -1,8 +1,11 @@
+RngContainerMaxValueCountDefault = 1000
+
 function RngContainer(_valueCount)
 	local self = {}
 	local valuesCache
 	local valueIndex
 	local indexCheckpoints = {}
+	_valueCount = _valueCount or RngContainerMaxValueCountDefault
 
 	function self.ResetIndex()
 		valueIndex = 1

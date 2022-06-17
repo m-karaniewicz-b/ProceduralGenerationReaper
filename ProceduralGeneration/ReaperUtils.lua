@@ -120,6 +120,10 @@ function ReaperUtils.RandomizeBPM(lower, upper)
 	return bpm
 end
 
+function ReaperUtils.SetBPM(bpm)
+	reaper.SetCurrentBPM(0, bpm, 1)
+end
+
 function ReaperUtils.GetTrackFXParameterNames(track, fxIndex)
 	track = track or 0
 	fxIndex = fxIndex or 0

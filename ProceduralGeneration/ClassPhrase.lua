@@ -95,7 +95,7 @@ function Phrase(
 			local beatsTimeOffset = ReaperUtils.BeatsToTime(currentBeat) + timeOffset
 			local normalizedPosition = currentBeat / (self.lengthInBeats - 1)
 			local verticalData = self.verticalDataMain
-			if (normalizedPosition >= self.endingNormalizedPosition) then
+			if (normalizedPosition > self.endingNormalizedPosition) then
 				verticalData = self.verticalDataEnding
 			end
 			for _, rule in ipairs(insertionRules) do

@@ -26,11 +26,11 @@ function Config.DefineGlobalsTracks()
 	TrackBass = reaper.GetTrack(0, 5)
 end
 
---Macro 1 => Intensity
---Macro 2 => Timbre 1
---Macro 3 => Timbre 2
---Macro 4 => Width
 function Config.GetSynthbassParamNames()
+	--Macro 1 => Intensity
+	--Macro 2 => Timbre 1
+	--Macro 3 => Timbre 2
+	--Macro 4 => Width
 	return {"Macro 1", "Macro 2", "Macro 3", "Macro 4"}
 end
 
