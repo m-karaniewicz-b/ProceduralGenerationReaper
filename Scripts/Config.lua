@@ -8,7 +8,7 @@ function Config.DefineGlobalsPaths()
 	PathDirSubgenerationRenders = "W:\\Samples\\Procedural\\SubGenerations"
 	PathDirGeneratedProjectFiles = "W:\\Samples\\Procedural\\Generated\\ProjectFiles"
 
-	PathDirBankVitalVST3Bass = "C:\\Repositories\\ReaperScripts\\ProceduralGeneration\\VitalVST3Presets\\Bass"
+	PathDirBankVitalVST3Bass = "C:\\Repositories\\ProceduralGenerationReaper\\VitalVST3Presets\\Bass"
 	PathDirBankKick = "W:\\Samples\\Procedural\\Banks\\Kicks"
 	PathDirBankSnare = "W:\\Samples\\Procedural\\Banks\\Snares"
 	PathDirBankOrnamentSource = "W:\\Samples\\Procedural\\Banks\\Random"
