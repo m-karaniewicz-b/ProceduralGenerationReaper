@@ -20,6 +20,16 @@ function Phrase(
 	local bassTrack
 	local insertionRules
 
+	local phraseTimbreValue = self.rngContainer.GetNext()
+
+	local function GetCurrentVerticalData(normalizedPosition)
+		local verticalData = self.verticalDataMain
+		if (normalizedPosition > self.endingNormalizedPosition) then
+			verticalData = self.verticalDataEnding
+		end
+		return verticalData
+	end
+
 	local function InsertKicks(time)
 		ReaperUtils.InsertAudioItemPercussive(self.kickFile, kickTrack, time, 0.25, 0.225)
 	end
@@ -74,6 +84,42 @@ function Phrase(
 		)
 	end
 
+	local function InsertItemsWithRules(timeOffset)
+		for currentBeat = 0, self.lengthInBeats - 1, 1 do
+			local beatsTimeOffset = ReaperUtils.BeatsToTime(currentBeat) + timeOffset
+			local verticalData = GetCurrentVerticalData(currentBeat / (self.lengthInBeats - 1))
+			for _, rule in ipairs(insertionRules) do
+				if rule[2](currentBeat, verticalData) then
+					rule[1](beatsTimeOffset)
+				end
+			end
+		end
+	end
+
+	local function InsertAutomation(timeOffset)
+		local intensityFormula = NormalizedFunctionsUtils.GetRandomIncreasing(self.rngContainer)
+		local timbre1Formula = NormalizedFunctionsUtils.GetRandomPeriodic(self.rngContainer)
+		local timbre2Formula =
+			Formula(
+			function()
+				return phraseTimbreValue
+			end
+		)
+		local widthFormula = Formula()
+
+		local pointsPerBeat = AutomationPointsPerBeat
+		local tickLength = 1 / pointsPerBeat
+		for currentTick = 0, self.lengthInBeats, tickLength do
+			local pointTimeOffset = ReaperUtils.BeatsToTime(currentTick) + timeOffset
+			local progress = currentTick / self.lengthInBeats
+			local verticalData = GetCurrentVerticalData(currentTick / (self.lengthInBeats - 1))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeIntensity, pointTimeOffset, intensityFormula.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, pointTimeOffset, timbre1Formula.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre2, pointTimeOffset, timbre2Formula.GetValue(progress))
+			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, pointTimeOffset, widthFormula.GetValue(verticalData.width))
+		end
+	end
+
 	function self.SetTracks(_kickTrack, _sideKickTrack, _snareTrack, _bassTrack)
 		kickTrack = _kickTrack
 		sideKickTrack = _sideKickTrack
@@ -88,39 +134,10 @@ function Phrase(
 	end
 
 	function self.Insert(_startPosition)
-		local timeOffset = _startPosition
 		local lengthTime = ReaperUtils.BeatsToTime(self.lengthInBeats)
 		local endPosition = _startPosition + lengthTime
-		for currentBeat = 0, self.lengthInBeats - 1, 1 do
-			local beatsTimeOffset = ReaperUtils.BeatsToTime(currentBeat) + timeOffset
-			local normalizedPosition = currentBeat / (self.lengthInBeats - 1)
-			local verticalData = self.verticalDataMain
-			if (normalizedPosition > self.endingNormalizedPosition) then
-				verticalData = self.verticalDataEnding
-			end
-			for _, rule in ipairs(insertionRules) do
-				if rule[2](currentBeat, verticalData) then
-					rule[1](beatsTimeOffset)
-				end
-			end
-		end
-
-		local intensityFormula = NormalizedFunctionsUtils.GetRandomIncreasing(self.rngContainer)
-		local timbre1Formula = NormalizedFunctionsUtils.GetRandomPeriodic(self.rngContainer)
-		local timbre2Value = self.rngContainer.GetNext()
-		local widthFormula = NormalizedFunctionsUtils.GetRandomPeriodic(self.rngContainer)
-
-		local pointsPerBeat = AutomationPointsPerBeat
-		local increment = 1 / pointsPerBeat
-		for i = 0, self.lengthInBeats, increment do
-			local pointTimeOffset = ReaperUtils.BeatsToTime(i) + timeOffset
-			local progress = i / self.lengthInBeats
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeIntensity, pointTimeOffset, intensityFormula.GetValue(progress))
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre1, pointTimeOffset, timbre1Formula.GetValue(progress))
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeTimbre2, pointTimeOffset, timbre2Value)
-			ReaperUtils.InsertEnvelopePointSimple(BassEnvelopeWidth, pointTimeOffset, widthFormula.GetValue(progress))
-		end
-
+		InsertItemsWithRules(_startPosition)
+		InsertAutomation(_startPosition)
 		return endPosition
 	end
 
@@ -129,12 +146,13 @@ function Phrase(
 	return self
 end
 
-function PhraseVerticalData(_kick, _snare, _sidechain, _bass, _intensityMin, _intensityMax)
+function PhraseVerticalData(_kick, _snare, _sidechain, _bass, _width, _intensityMin, _intensityMax)
 	local self = {
 		kick = _kick,
 		snare = _snare,
 		sidechain = _sidechain,
 		bass = _bass,
+		width = _width,
 		intensityMin = _intensityMin,
 		intensityMax = _intensityMax
 	}

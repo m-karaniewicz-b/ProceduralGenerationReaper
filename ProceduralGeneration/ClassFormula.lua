@@ -1,8 +1,10 @@
 function Formula(formulaFunction, steepness, frequency)
 	local self = {
-		formulaFunction = formulaFunction,
 		steepness = steepness or 1,
-		frequency = frequency or 1
+		frequency = frequency or 1,
+		formulaFunction = formulaFunction or function(x, s, f)
+				return x
+			end
 	}
 
 	function self.GetValue(time01)

@@ -17,6 +17,18 @@ function MathUtils.Remap(value, outMin, outMax, inMin, inMax)
 	return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin)
 end
 
+function MathUtils.Clamp(value, min, max)
+	return value < min and min or value > max and max or value
+end
+
+function MathUtils.Step(value, step)
+	return value < step and 0 or 1
+end
+
+function MathUtils.StepValue(value, step)
+	return value < step and 0 or value - step
+end
+
 function MathUtils.Sin01(phase, periodLength, steepness)
 	steepness = steepness or 1
 	periodLength = periodLength or 1

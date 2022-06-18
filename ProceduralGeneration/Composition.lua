@@ -29,21 +29,19 @@ local function SetBPM(rngContainer)
 	ReaperUtils.SetBPM(rngContainer.RandomRangeInt(90, 110))
 end
 
-local function CreateBassNoteSequence(phraseLength)
-	local bassNoteSequenceRngContainer = RngContainer(1000)
+local function CreateBassNoteSequence(phraseLength, rngContainer)
 	local bassItemsPerPhrase = 4
 	local bassItemLength = phraseLength / bassItemsPerPhrase
 	local bassMaxNotesPerBeat = 8
 	local bassNotesTimeWeightTable = {0, 0, 0, 1, 0, 8}
-
-	local bassNotesPitchBase = 32
+	local bassNotesPitchBase = rngContainer.RandomRangeInt(26, 38)
 	local bassNotesPitchRange = 16
 	local bassProgressFormula = Formula(MathUtils.SawUp01, 0.3, 1)
 	local bassPitchFormula = Formula(MathUtils.SawUp01, 2, 1)
 
 	local bassNoteSequence =
 		NoteSequence(
-		bassNoteSequenceRngContainer,
+		RngContainer(),
 		bassItemLength,
 		bassMaxNotesPerBeat,
 		bassNotesTimeWeightTable,
@@ -56,17 +54,29 @@ local function CreateBassNoteSequence(phraseLength)
 	return bassNoteSequence
 end
 
-local function ApplyRandomModifierToNoteSequence(noteSequence)
-	noteSequence.pitchDistributionModifierFormula.steepness = noteSequence.pitchDistributionModifierFormula.steepness * 8
+local function ApplyRandomModifierToNoteSequence(noteSequence, rngContainer)
+	local modifiers = {
+		function(ns)
+			ns.pitchDistributionModifierFormula.steepness =
+				ns.pitchDistributionModifierFormula.steepness * (rngContainer.RandomRangeFloat(8, 12))
+		end,
+		function(ns)
+			ns.pitchBaseSemitones = ns.pitchBaseSemitones + rngContainer.RandomRangeInt(-1, 1) * 12
+		end,
+		function(ns)
+			ns.pitchRangeSemitones = ns.pitchRangeSemitones * (rngContainer.RandomRangeFloat(1.5, 2.5))
+		end
+	}
+	modifiers[rngContainer.RandomRangeInt(1, #modifiers)](noteSequence)
 end
 
-local function CreateBassNoteSequenceVariations(originalSequence, variationCount)
+local function CreateBassNoteSequenceVariations(originalSequence, variationCount, rngContainer)
 	local sequenceVariations = {}
 	sequenceVariations[#sequenceVariations + 1] = originalSequence
 	local newSequence
 	for i = 1, variationCount, 1 do
 		newSequence = originalSequence.Copy()
-		ApplyRandomModifierToNoteSequence(newSequence)
+		ApplyRandomModifierToNoteSequence(newSequence, rngContainer)
 		newSequence.RecalculatePitch()
 		sequenceVariations[#sequenceVariations + 1] = newSequence
 	end
@@ -74,15 +84,18 @@ local function CreateBassNoteSequenceVariations(originalSequence, variationCount
 end
 
 local function CreatePhrase(phraseLength, compositionProgress, bassNoteSequenceVariations, compositionRngContainer)
-	local introOutroValue = (1 - MathUtils.Triangle01(compositionProgress, 1, 1)) * 1.5
-	local kickMainActive = introOutroValue > compositionRngContainer.GetNext()
-	local sidechainMainActive = introOutroValue > compositionRngContainer.GetNext()
+	local compositionValueIntroOutro = MathUtils.Clamp((1 - MathUtils.Triangle01(compositionProgress, 1, 1)) * 2, 0, 1)
+	local variationStart = 0.3
+	local compositionValueVariation = MathUtils.StepValue(compositionProgress, variationStart) / (1 - variationStart)
+
+	local kickMainActive = compositionValueIntroOutro > compositionRngContainer.GetNext()
 	local phaseVerticalDataMain =
 		PhraseVerticalData(
-		kickMainActive and sidechainMainActive,
-		introOutroValue ^ 0.5 > compositionRngContainer.GetNext(),
-		sidechainMainActive,
+		kickMainActive,
+		compositionValueIntroOutro ^ 0.5 > compositionRngContainer.GetNext(),
+		kickMainActive,
 		true,
+		compositionValueIntroOutro,
 		0,
 		1
 	)
@@ -90,14 +103,17 @@ local function CreatePhrase(phraseLength, compositionProgress, bassNoteSequenceV
 	local phaseVerticalDataEnd =
 		PhraseVerticalData(
 		false,
-		introOutroValue > compositionRngContainer.GetNext(),
-		0.5 < compositionRngContainer.GetNext(),
+		compositionValueIntroOutro > compositionRngContainer.GetNext(),
+		0.5 < compositionRngContainer.GetNext() and kickMainActive,
 		true,
+		compositionValueIntroOutro,
 		0,
 		1
 	)
 
-	local bassNoteSequence = bassNoteSequenceVariations[1]
+	local variationIndex =
+		MathUtils.Round(MathUtils.Remap(compositionValueVariation, 1, #bassNoteSequenceVariations, 0, 1))
+	local bassNoteSequence = bassNoteSequenceVariations[variationIndex]
 
 	local phraseEndingPositions = {1, 0.875, 0.75}
 	local phraseEndingPositionWeights = {1, 4, 3}
@@ -140,6 +156,10 @@ local function PhraseQueueInsert(phraseQueue)
 end
 
 function CreateComposition(phraseCountMin, phraseCountMax, phraseLength)
+	phraseCountMin = phraseCountMin or 7
+	phraseCountMax = phraseCountMax or 9
+	phraseLength = phraseLength or 32
+
 	InitializeRng()
 	local compositionRngContainer = RngContainer()
 	SetBPM(compositionRngContainer)
@@ -147,11 +167,16 @@ function CreateComposition(phraseCountMin, phraseCountMax, phraseLength)
 	SetPresets()
 
 	local phraseCount = math.random(phraseCountMin, phraseCountMax)
-	local bassNoteSequenceVariations = CreateBassNoteSequenceVariations(CreateBassNoteSequence(phraseLength), 2)
+	local bassNoteSequenceVariations =
+		CreateBassNoteSequenceVariations(
+		CreateBassNoteSequence(phraseLength, compositionRngContainer),
+		4,
+		compositionRngContainer
+	)
 	local phraseQueue = {}
 	for i = 1, phraseCount do
 		phraseQueue[#phraseQueue + 1] =
-			CreatePhrase(phraseLength, (i - 1) / phraseCount, bassNoteSequenceVariations, compositionRngContainer)
+			CreatePhrase(phraseLength, (i - 1) / (phraseCount - 1), bassNoteSequenceVariations, compositionRngContainer)
 	end
 
 	PhraseQueueSetFiles(phraseQueue)

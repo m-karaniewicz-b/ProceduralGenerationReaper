@@ -10,7 +10,7 @@ function StartGeneration(compositionCount, saveProjectToFile, renderToFile)
 		CurrentCompositionSeed = os.time() * seedSeparatorMultiplier + i
 		AutomationPointsPerBeat = 4
 
-		CreateComposition(6, 8, 32)
+		CreateComposition()
 
 		if (saveProjectToFile) then
 			ReaperUtils.SaveProjectAndCopyToPath(PathDirGeneratedProjectFiles .. Separator .. currentCompositionName .. ".rpp")
