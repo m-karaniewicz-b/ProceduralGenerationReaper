@@ -26,7 +26,7 @@ local function SetPresets()
 end
 
 local function SetBPM(rngContainer)
-	ReaperUtils.SetBPM(rngContainer.RandomRangeInt(90, 110))
+	ReaperUtils.SetBPM(rngContainer.RandomRangeInt(90, 125))
 end
 
 local function CreateBassNoteSequence(phraseLength, rngContainer)
@@ -61,11 +61,11 @@ local function ApplyRandomModifierToNoteSequence(noteSequence, rngContainer)
 				ns.pitchDistributionModifierFormula.steepness * (rngContainer.RandomRangeFloat(8, 12))
 		end,
 		function(ns)
-			ns.pitchBaseSemitones = ns.pitchBaseSemitones + rngContainer.RandomRangeInt(-1, 1) * 12
-		end,
-		function(ns)
 			ns.pitchRangeSemitones = ns.pitchRangeSemitones * (rngContainer.RandomRangeFloat(1.5, 2.5))
 		end
+		-- function(ns)
+		-- 	ns.pitchBaseSemitones = ns.pitchBaseSemitones + rngContainer.RandomRangeInt(-1, 1) * 12
+		-- end
 	}
 	modifiers[rngContainer.RandomRangeInt(1, #modifiers)](noteSequence)
 end
